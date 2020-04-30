@@ -1,64 +1,133 @@
-import codecs, pickle, os, logging
+import codecs, pickle, os, re, logging
+from functools import reduce
+
+from src.ida.code_elements import Program
+from vocab import AsmVocab
 
 
-class AsmVocab:
-    logger = logging.getLogger('AsmVocab')
-    
-    def __init__(self, unk='<unk>', max_vocab=10000):
-        self.unk = unk
-        self.size = 0
-        self.max_vocab = max_vocab
-        self.words = set([])
-        self.idx2word = []
-        self.word2idx = {}
-    
-    def build(self, doc):
+def split(line):
+    return filter(lambda l: len(l) > 0,
+        re.split(r'[+\-*@$^&\\\[\]:(),;\s]', line.strip()))
+
+
+def label_func(prog, func):
+    return prog['prog'] + func['label']
+
+
+class DocIter:
+    def __call__(self, prog):
+        raise NotImplementedError
+
+    def per(self, progs):
+        """  map with __call__ and reduce with unite """
+        for prog in progs:
+            yield self(prog)
+            # for doc in self(prog):
+                # yield doc
+
+
+class DIProxy(DocIter):
+    def __init__(self, iters):
+        self.iters = iters
+
+    def __call__(self, prog):
+        for doc_iter in self.iters:
+            prog = doc_iter(prog)
+        return prog
+
+    def per(self, progs):
+        for doc_iter in self.iters:
+            progs = doc_iter.per(progs)
+        return progs
+
+
+class DIPure(DocIter):
+    """  
+    Convert Program dict into a sequence of (func_label, func_stmts) 
+    """
+    def __call__(self, prog):
+        if isinstance(prog, Program):
+            prog = prog.__dict__
+        
+        try:
+            for func in prog['funcs']:
+                label, stmts = label_func(prog, func), []
+                for block in func['blocks']:
+                    stmts += block['src']
+                yield label, stmts
+        except KeyError as e:    
+            raise Exception('prog should be an inst of <Program> or <Dict>!\n\
+                Check if the fields name of <Program> have been changed.')
+
+
+class DITokenizer(DocIter):
+
+    def __call__(self, prog):
         """ 
-        Do the convertion
-        @param doc: iterator of sentences
-        """     
-        self.logger.debug('building vocab...')
-        
-        self.wc = {self.unk: 1}
-        
-        for step, line in enumerate(doc):
-            if not step % 1000:
-                self.logger.debug(f'working on {step // 1000}kth line')
-            for word in line.strip().split():
-                self.wc[word] = self.wc.get(word, 0) + 1
-        
-        sorted_wc = sorted(self.wc, key=self.wc.get, reverse=True)
-        self.idx2word = [self.unk] + sorted_wc[:self.max_vocab - 1]
-        self.size, self.words = len(self.idx2word), set(self.idx2word)
-        self.word2idx = {self.idx2word[i]: i for i in range(self.size)}
+        Tokenize statements in the <prog>. <prog> should be a list of
+        <func>s; each <func> should consist of a label and the stmts 
+        in lines
+        """
+        for label, stmts in prog:
+            yield label, self.__tokenize(stmts)
 
-        self.logger.debug('building vocab done')
+    def __tokenize(self, stmts):
+        for stmt in stmts:
+            yield split(stmt)
 
 
-class CBowPreprocessor:
+class DIStmts(DocIter):
+
+    def __call__(self, prog):
+        for _, stmts in prog:
+            yield stmts
+
+
+class DIUnite(DocIter):
+
+    def __call__(self, prog):
+        for doc in prog:
+            yield doc
+
+    def per(self, progs):
+        for prog in progs:
+            for doc in prog:
+                yield doc
+
+
+class CBowDataEnd:
     """ 
     Convert documents into the sequence of (center_word, words_window)
     for the support of training CBow model. The words therein have 
     been substituted with the one-hot encoding by using the given vocab   
     """ 
-    logger = logging.getLogger('CBowPreprocessor')    
+    logger = logging.getLogger('CBowDataEnd')    
 
     def __init__(self, window, vocab: AsmVocab):
         self.window = window
         self.vocab = vocab
         self.data = []
-    
+
     def __unk_list(self, l):
         return [self.vocab.unk] * l
 
-    def __window(self, sentence, i):
-        cw = sentence[i]
-        l, r = max(i - self.window, 0), i + 1 + self.window
-        lw, rw = sentence[l:i], sentence[i+1:r]
-        return cw, self.__unk_list(self.window-len(lw)) + lw + \
-            rw + self.__unk_list(self.window-len(rw))
+    def __unk_idx_list(self, l):
+        # 0 is the index of self.vocab.unk
+        return [0] * l        
 
-    def run(self, doc):
+    def __build_one_doc(self, insts):
+        n_insts = len(insts)
+        for i, inst in enumerate(insts):
+            prev_inst = insts[i - 1][:self.window] if i > 0 else []
+            next_inst = insts[i + 1][:self.window] if i + 1 < n_insts else []
+            lw = self.__unk_idx_list(self.window-len(prev_inst))
+            rw = self.__unk_idx_list(self.window-len(next_inst))
+
+            context = lw + prev_inst + next_inst + rw
+            for word in inst:
+                yield word, context
+
+    def build(self, docs):
         """ 
         Do the convertion
         @param doc: iterator of sentences
@@ -66,18 +135,10 @@ class CBowPreprocessor:
         self.logger.debug('building training data...')
         
         data = []
-        for step, line in enumerate(doc):
-            if not step % 1000:
-                self.logger.debug(f'working on {step//1000}kth line')
-            line = line.strip()
-            if not line:
-                continue
-            sent = [w if w else self.vocab.unk for w in line.split()]
-            for i in range(len(sent)):
-                iword, owords = self.__window(sent, i)
-                iword = self.vocab.word2idx[iword]
-                owords = [self.vocab.word2idx[oword] for oword in owords]
-                data.append((iword, owords))
+        for label, stmts in docs:
+            stmts = self.vocab.onehot_encode(stmts)
+            for word, context in self.__build_one_doc(stmts) :
+                data.append((label, word, context))
         self.data = data
 
         self.logger.debug('building training data done')

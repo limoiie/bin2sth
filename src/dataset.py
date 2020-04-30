@@ -6,13 +6,12 @@ from torch.utils.data import Dataset
 
 class CBowDataset(Dataset):
 
-    def __init__(self, datapath, ws=None):
-        data = pickle.load(open(datapath, 'rb'))
+    def __init__(self, data_end, ws=None):
+        data = data_end
         if ws is not None:
-            self.data = []
-            for iword, owords in data:
-                if random.random() > ws[iword]:
-                    self.data.append((iword, owords))
+            def f(_, w, __):
+                return random.random() > ws[w]
+            self.data = filter(f, data)
         else:
             self.data = data
 
