@@ -15,6 +15,13 @@ class TestJointMethods(unittest.TestCase):
         xy_ = list(joint(x, y, c=True))
         self.assertEqual(xy, xy_)
 
+    def test_joint_with_empty(self):
+        x = [1, 2]
+        xy_ = list(joint(x, [], c=True))
+        yx_ = list(joint([], x, c=True))
+        self.assertEqual(x, xy_)
+        self.assertEqual(x, yx_)
+
     def test_flat(self):
         x = [1, 2]
         y = [[3, 4, 5], [6, 7]]

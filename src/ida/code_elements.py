@@ -18,10 +18,14 @@ class Serializable(object):
 
   @staticmethod
   def to_json(obj):
+    if obj is None:
+      return None
     return obj.serialize()
 
   @staticmethod
   def to_json_list(objs):
+    if objs is None:
+      return []
     return [Serializable.to_json(obj) for obj in objs]
 
   @staticmethod
@@ -47,10 +51,10 @@ class Serializable(object):
 
 
 class Arch(Serializable):
-  def __init__(self):
-    self.type = None
-    self.bits = None
-    self.endian = None
+  def __init__(self, type=None, bits=None, endian=None):
+    self.type = type
+    self.bits = bits
+    self.endian = endian
   
 
 class Block(Serializable):
