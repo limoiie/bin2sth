@@ -57,10 +57,10 @@ class AsmVocab:
         self.idx2tkn = [''] * self.total_unique_tkn
         self.idx2frq = [0] * self.total_unique_tkn
 
-        P = self.unk
-        self.idx2tkn[0] = P
+        p = self.unk
+        self.idx2tkn[0] = p
         self.idx2frq[0] = 0
-        self.tkn2idx[P] = 0
+        self.tkn2idx[p] = 0
 
         name_freq_pairs = list(self.counter.items())
         name_freq_pairs.sort(key=lambda e: e[1], reverse=True)

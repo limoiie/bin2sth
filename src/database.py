@@ -3,9 +3,11 @@ import json
 from src.ida.code_elements import Serializable, Program
 from src.preprocess import AsmVocab, CBowDataEnd
 from src.preprocess import DIProxy, DIPure, DIStmts
-from src.preprocess import DITokenizer, DIUnite
+from src.preprocess import DITokenizer, DIUnite, DICorpus
 from src.utils.filter_collection import filter_dict
 from src.utils.list_joint import flat, joint_list
+
+from src.corpus import Corpus
 
 
 def parser_program_info(json_file):
@@ -84,12 +86,22 @@ def load_vocab(db, args):
     return vocab
 
 
+def load_corpus(db, args):
+    progs = load_progs_joint(db, args)    
+    pp = DIProxy([DIPure(), DICorpus(), DIUnite()])
+    docs = pp.per(progs)
+    corpus = Corpus()
+    corpus.build(docs)
+    return corpus
+
+
 def load_cbow_data_end(db, vocab_args, args, window):
     # TODO: cache into db
     vocab = load_vocab(db, vocab_args)
+    corpus = load_corpus(db, args)
     progs = load_progs_joint(db, args)
     pp = DIProxy([DIPure(), DITokenizer(), DIUnite()])
     docs = pp.per(progs)
-    data = CBowDataEnd(window, vocab)
+    data = CBowDataEnd(window, vocab, corpus)
     data.build(docs)
     return data

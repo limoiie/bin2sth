@@ -3,6 +3,7 @@ import re
 
 from src.ida.code_elements import Program
 from src.vocab import AsmVocab
+from src.corpus import Corpus
 
 
 def split(line):
@@ -12,7 +13,7 @@ def split(line):
 
 
 def label_func(prog, func):
-    return prog['prog'] + func['label']
+    return prog['prog'] + prog['prog_ver'] + func['label']
 
 
 class DocIter:
@@ -98,6 +99,16 @@ class DIUnite(DocIter):
                 yield doc
 
 
+class DICorpus(DocIter):
+    """ 
+    A tap middleware. The function names will be collected
+    and then are used to build the corpus
+    """
+    def __call__(self, prog):
+        for label, _insts in prog:
+            yield label
+
+
 def unk_idx_list(l):
     # 0 is the index of self.vocab.unk
     return [0] * l
@@ -111,9 +122,10 @@ class CBowDataEnd:
     """
     logger = logging.getLogger('CBowDataEnd')
 
-    def __init__(self, window, vocab: AsmVocab):
+    def __init__(self, window, vocab: AsmVocab, corpus: Corpus):
         self.window = window
         self.vocab = vocab
+        self.corpus = corpus
         self.data = []
 
     def __unk_list(self, l):
@@ -140,9 +152,10 @@ class CBowDataEnd:
 
         data = []
         for label, stmts in docs:
+            func_id = self.corpus.doc2idx[label]
             stmts = self.vocab.onehot_encode(stmts)
             for word, context in self.__build_one_doc(stmts):
-                data.append((label, word, context))
+                data.append((func_id, word, context))
         self.data = data
 
         self.logger.debug('building training data done')
