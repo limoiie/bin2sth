@@ -1,6 +1,6 @@
 import unittest
 
-from src.database import joint, flat
+from src.utils.list_joint import joint, flat
 
 
 class TestJointMethods(unittest.TestCase):
