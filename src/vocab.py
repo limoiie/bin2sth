@@ -4,7 +4,7 @@ import logging
 class AsmVocab:
     logger = logging.getLogger('AsmVocab')
 
-    def __init__(self, min_freq=0, max_vocab=10000, unk='</unk>'):
+    def __init__(self, min_freq=0, _max_vocab=10000, unk='</unk>'):
         self.min_freq = min_freq
         self.unk = unk
         self.total_tkn = 0

@@ -1,10 +1,9 @@
 def joint(lhs, rhs, c=False):
     """ Joint-product the two given lists """
-    if not lhs: 
-        for i in iter(rhs): yield i
-    if not rhs: 
-        for i in iter(lhs): yield i
-    
+    if not lhs or not rhs:
+        for i in iter(rhs if not lhs else lhs):
+            yield i
+
     rhs = list(rhs)  # in case that rhs is an iterator
     for l in lhs:
         for r in rhs:

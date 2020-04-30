@@ -1,5 +1,5 @@
 from src.preprocess import *
-from database import *
+from src.database import *
 from pymongo import MongoClient
 from src.ida.code_elements import *
 

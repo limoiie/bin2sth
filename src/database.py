@@ -1,14 +1,11 @@
 import json
-import re
-from pymongo import MongoClient
 
 from src.ida.code_elements import Serializable, Program
-
-from src.utils.list_joint import joint, flat, joint_list
+from src.preprocess import AsmVocab, CBowDataEnd
+from src.preprocess import DIProxy, DIPure, DIStmts
+from src.preprocess import DITokenizer, DIUnite
 from src.utils.filter_collection import filter_dict
-from preprocess import DIProxy, DIPure, DIStmts
-from preprocess import DITokenizer, DIUnite
-from preprocess import AsmVocab, CBowDataEnd
+from src.utils.list_joint import flat, joint_list
 
 
 def parser_program_info(json_file):
@@ -31,13 +28,13 @@ def parser_program_info_json(json_file):
 def make_prog_filter(p=None, pv=None, c=None, cv=None, arch=None,
                      opt=None, obf=None):
     prog = Program((p, pv), (c, cv), arch, opt, obf)
-    filter = prog.serialize()
-    return filter_dict(filter)
+    the_filter = prog.serialize()
+    return filter_dict(the_filter)
 
 
 def load_progs(db, **args):
-    filter = make_prog_filter(**args)
-    return db.binaries.find(filter)
+    the_filter = make_prog_filter(**args)
+    return db.binaries.find(the_filter)
 
 
 def load_one_prog(db, **args):

@@ -1,6 +1,6 @@
-import os, pickle, random
-import numpy as np
+import random
 
+import numpy as np
 from torch.utils.data import Dataset
 
 
@@ -19,5 +19,5 @@ class CBowDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        iword, owords = self.data[idx]
-        return iword, np.array(owords)
+        c_word, ctx_words = self.data[idx]
+        return c_word, np.array(ctx_words)
