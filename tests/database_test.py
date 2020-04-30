@@ -24,3 +24,7 @@ class TestJointMethods(unittest.TestCase):
         ]
         xy_ = flat(x, y)
         self.assertEqual(xy, xy_)
+
+
+if __name__ == "__main__":
+    unittest.main()

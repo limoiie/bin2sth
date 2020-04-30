@@ -1,6 +1,6 @@
 import json
 import pymongo
-from ida.code_elements import Serializable, Program
+from src.ida.code_elements import Serializable, Program
 
 
 def parser_program_info(json_file):
