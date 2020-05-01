@@ -13,6 +13,7 @@ class Corpus:
         # doc is binary#function
         self.doc2idx = {}
         self.idx2doc = []
+        self.idx2ins = []
         self.n_docs = 0
 
     def build(self, docs):
@@ -26,12 +27,14 @@ class Corpus:
     def __prepare(self):
         self.doc2idx = {}
         self.idx2doc = []
+        self.idx2ins = []
         self.n_docs = 0
     
-    def __scan(self, docs):
-        self.idx2doc = list(docs)
-        for i, doc in enumerate(self.idx2doc):
+    def __scan(self, docs):        
+        for i, (doc, ins) in enumerate(docs):
+            self.idx2doc.append(doc)
             self.doc2idx[doc] = i
+            self.idx2ins.append(ins)
         self.n_docs = len(self.doc2idx)
 
     def onehot_encode(self, fun_name):

@@ -1,0 +1,56 @@
+{
+    "vocab": {
+        "progs": [
+            "lua"
+        ],
+        "prog_vers": [
+            ["5.2.3"]
+        ],
+        "ccs": [
+            "gcc"
+        ],
+        "cc_vers": [
+            [5]
+        ],
+        "archs": [
+            {
+                "type": "metapc",
+                "bits": "b32",
+                "endian": "le"
+            }
+        ],
+        "opts": [
+            "O0"
+        ],
+        "obfs": [
+            "sub3"
+        ]
+    },
+    "corpus": {
+        "progs": [
+            "lua"
+        ],
+        "prog_vers": [
+            ["5.2.3"]
+        ],
+        "ccs": [
+            "gcc"
+        ],
+        "cc_vers": [
+            [5]
+        ],
+        "archs": [
+            {
+                "type": "metapc",
+                "bits": "b32",
+                "endian": "le"
+            }
+        ],
+        "opts": [
+            "O0"
+        ],
+        "obfs": [
+            "sub3"
+        ]
+    }
+}

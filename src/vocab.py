@@ -1,16 +1,16 @@
-import logging
+from src.utils.logger import get_logger
 
 import numpy as np
 
 
 class AsmVocab:
-    logger = logging.getLogger('AsmVocab')
+    logger = get_logger('AsmVocab')
 
     def __init__(self, min_freq=0, _max_vocab=10000, unk='</unk>'):
         self.min_freq = min_freq
         self.unk = unk
         self.total_tkn = 0
-        self.total_unique_tkn = 0
+        self.size = 0
         self.counter = {}
         self.idx2tkn = []
         self.idx2frq = []
@@ -24,7 +24,7 @@ class AsmVocab:
         self.__prepare()
         self.__count_tokens(docs)    
         self.__filter_by_freq()
-        self.total_unique_tkn = len(self.counter)
+        self.size = len(self.counter)
         self.total_tkn = sum(self.counter.values())
         self.__map_idx2other()
 
@@ -33,7 +33,7 @@ class AsmVocab:
 
     def __prepare(self):
         self.total_tkn = 0
-        self.total_unique_tkn = 0
+        self.tsizeotal_unique_tkn = 0
         self.counter.clear()
         self.idx2tkn.clear()
         self.idx2frq.clear()
@@ -55,15 +55,16 @@ class AsmVocab:
             del self.counter[token]
 
     def __map_idx2other(self):
-        self.total_unique_tkn += 1
-        self.idx2tkn = [''] * self.total_unique_tkn
-        self.idx2frq = [0] * self.total_unique_tkn
+        self.size += 1
+        self.idx2tkn = [''] * self.size
+        self.idx2frq = [0] * self.size
 
         p = self.unk
         self.idx2tkn[0] = p
         self.idx2frq[0] = 0
         self.tkn2idx[p] = 0
 
+        
         name_freq_pairs = list(self.counter.items())
         name_freq_pairs.sort(key=lambda e: e[1], reverse=True)
 

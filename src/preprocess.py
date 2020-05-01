@@ -141,18 +141,12 @@ class CBowDataEnd:
             for word in inst:
                 yield word, context
 
-    def build(self, docs):
-        """ 
-        Process @param docs into a sequence of training data entries.
-        @param docs: iterator of functions. each function consists of 
-        a label, which is program + function_name, and a list of statements,
-        each of which is a list of onehot encoding tokens
-        """
+    def build(self):
+        """ Process docs into a sequence of training data entries. """
         self.logger.debug('building training data...')
 
         data = []
-        for label, stmts in docs:
-            func_id = self.corpus.doc2idx[label]
+        for func_id, stmts in enumerate(self.corpus.idx2ins):
             stmts = self.vocab.onehot_encode(stmts)
             for word, context in self.__build_one_doc(stmts):
                 data.append((func_id, word, context))

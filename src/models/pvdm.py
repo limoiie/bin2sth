@@ -117,7 +117,8 @@ class CBowPVDM(torch.nn.Module):
  
         loss = -sim.masked_fill(sim == 0, 1).log().sum(1).mean()
         # loss = loss.log().sum(1).mean()
-        return loss, sam_vec.abs().mean()
+        # return loss, sam_vec.abs().mean()
+        return loss
 
     def __neg_sample(self, batch_size):
         if self.neg_samp_dist is not None:

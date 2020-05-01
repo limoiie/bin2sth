@@ -61,7 +61,7 @@ def load_one_prog(db, **args):
     return None
 
 
-class ArgsBag(Serializable):
+class BinArgs(Serializable):
     def __init__(self, progs=None, prog_vers=None, ccs=None, cc_vers=None,
                  archs=None, opts=None, obfs=None):
         self.progs, self.prog_vers = progs, prog_vers
@@ -75,17 +75,17 @@ class ArgsBag(Serializable):
         return joint_list([progs, ccs, self.archs, self.opts, self.obfs])
     
     def serialize(self):
-        dic = super(ArgsBag, self).serialize()
+        dic = super(BinArgs, self).serialize()
         dic['archs'] = self.to_json_list(self.archs)
         return dic
 
     def deserialize(self, data):
-        super(ArgsBag, self).deserialize(data)
+        super(BinArgs, self).deserialize(data)
         self.archs = self.from_json_list(Arch, data['archs'])
         return self
 
 
-def load_progs_joint(db, args: ArgsBag):
+def load_progs_joint(db, args: BinArgs):
     """ 
     Joint product the args to form a set of binaries and then load the 
     info of these binaries into a list.
@@ -102,7 +102,7 @@ def load_progs_joint(db, args: ArgsBag):
     return prog_info_jsons
 
 
-def load_vocab(db, args: ArgsBag):
+def load_vocab(db, args: BinArgs):
     # TODO: cache into db
     progs = load_progs_joint(db, args)
     pp = DIProxy([DIPure(), DITokenizer(), DIStmts(), DIUnite()])
@@ -112,22 +112,19 @@ def load_vocab(db, args: ArgsBag):
     return vocab
 
 
-def load_corpus(db, args: ArgsBag):
+def load_corpus(db, args: BinArgs):
     progs = load_progs_joint(db, args)    
-    pp = DIProxy([DIPure(), DICorpus(), DIUnite()])
+    pp = DIProxy([DIPure(), DITokenizer(), DIUnite()])
     docs = pp.per(progs)
     corpus = Corpus()
     corpus.build(docs)
     return corpus
 
 
-def load_cbow_data_end(db, vocab_args, args: ArgsBag, window):
+def load_cbow_data_end(db, vocab_args, args: BinArgs, window):
     # TODO: cache into db
     vocab = load_vocab(db, vocab_args)
     corpus = load_corpus(db, args)
-    progs = load_progs_joint(db, args)
-    pp = DIProxy([DIPure(), DITokenizer(), DIUnite()])
-    docs = pp.per(progs)
     data = CBowDataEnd(window, vocab, corpus)
-    data.build(docs)
+    data.build()
     return data

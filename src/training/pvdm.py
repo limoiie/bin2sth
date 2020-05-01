@@ -1,69 +1,85 @@
+import copy
+import fire
+
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from src.database import ArgsBag
+from src.database import BinArgs
 from src.database import load_cbow_data_end, get_database_client, load_json_file
 from src.dataset import CBowDataset
 from src.models.pvdm import CBowPVDM, WordEmbedding, FuncEmbedding
 from src.utils.progress_bar import ProgressBar
+from src.utils.logger import get_logger
 from src.vocab import compute_word_freq_ratio, compute_sub_sample_ratio
 
+from src.ida.code_elements import Serializable
+from src.training.training import train_one_epoch
+from src.training.pvdm_args import ModelArgs, parse_data_file
+from src.training.pvdm_args import TrainArgs, QueryArgs, parse_eval_file
 
-def parse_data_file(data_args_file):
-    args = load_json_file(data_args_file)
-    vocab_args = ArgsBag().deserialize(args['vocab'])
-    train_args = ArgsBag().deserialize(args['train'])
-    return vocab_args, train_args
-
-
-def train_one_epoch(epoch, model, dataset, optimizer, n_batch):
-    data_loader = DataLoader(dataset, batch_size=n_batch, shuffle=True)
-    progress_bar = ProgressBar(data_loader, f'[Epoch {epoch}]', 100)
-
-    # TODO: use average loss instead
-    step_loss = 0
-    for i, (fun, word, ctx) in enumerate(progress_bar.bar):
-        # print(f'data entry: ({fun}, {word}, {ctx})')
-        loss, mean_vec = model(fun, word, ctx)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        step_loss = loss.item()
-        progress_bar.step(loss=step_loss)
-    return step_loss
+from src.evaluating.funcs_accuracy import make_evaluation
 
 
-def train(epochs, n_batch, n_emb, n_negs, init_lr, no_hdn,
-          cuda, ss, window, data_args):
-    # prepare database
-    client = get_database_client()
-    db = client.test_database
+logger = get_logger('training')
 
-    # parser data configuration and load data
-    vocab_args, train_args = parse_data_file(data_args)
-    data_end = load_cbow_data_end(db, vocab_args, train_args, window)
 
-    wf = compute_word_freq_ratio(data_end.vocab)
-    ws = compute_sub_sample_ratio(wf, ss)
+def training(db, rt, cuda, wf, ws, data_end, embedding=None):
+    vocab_size, corpus_size = data_end.vocab.size, data_end.corpus.n_docs
+    
+    fun_embedding = FuncEmbedding(corpus_size, rt.n_emb)
 
-    # init embedding matrix
-    vocab_size = data_end.vocab.total_unique_tkn
-    corpus_size = data_end.corpus.n_docs
-    embedding = WordEmbedding(vocab_size, n_emb, no_hdn=no_hdn)
-    doc_embedding = FuncEmbedding(corpus_size, n_emb)
-
-    # create model
-    model = CBowPVDM(embedding, doc_embedding, vocab_size, n_negs, wf)
-    optimizer = Adam(model.parameters(), lr=init_lr)
+    if embedding:  # fix embedding
+        model = CBowPVDM(None, fun_embedding, vocab_size, rt.n_negs, wf)
+        optimizer = Adam(model.parameters(), lr=rt.init_lr)
+        model.embedding = embedding
+    else:
+        embedding = WordEmbedding(vocab_size, rt.n_emb, no_hdn=rt.no_hdn)
+        model = CBowPVDM(embedding, fun_embedding, vocab_size, rt.n_negs, wf)
+        optimizer = Adam(model.parameters(), lr=rt.init_lr)
 
     loss_epochs = []
-    for epoch in range(epochs):
+    for epoch in range(rt.epochs):
         dataset = CBowDataset(data_end, ws)
-        loss = train_one_epoch(epoch, model, dataset, optimizer, n_batch)
+        loss = train_one_epoch(epoch, model, dataset, optimizer, rt.n_batch)
         loss_epochs.append(loss)
 
+    return model, loss_epochs
+
+
+def train_and_eval(cuda, data_args, db, rt):
+    """ 
+    Training process.
+    @param data_args: a file which contains two serialized instances of
+    @class ArgsBag, each of which represents a bag of bianries
+    """
+    vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
+
+    train_data = load_cbow_data_end(db, vocab_args, train_corpus, rt.window)
+    query_data = load_cbow_data_end(db, vocab_args, query_corpus, rt.window)
+
+    wf = compute_word_freq_ratio(train_data.vocab)
+    ws = compute_sub_sample_ratio(wf, rt.ss)
+
+    # train_args = TrainArgs('PVDM', rt, vocab_args, train_corpus)
+    # query_args = QueryArgs('PVDM', rt, vocab_args, train_corpus, query_corpus)
+
+    train_model, train_loss = training(db, rt, cuda, wf, ws, train_data)
+    query_model, query_loss = training(
+        db, rt, cuda, wf, ws, query_data, train_model.embedding)
+
+    evaluation = make_evaluation(train_data, query_data, cuda, ws)
+    evaluation.evaluate1(train_model.doc_embedding, query_model.doc_embedding)
+    evaluation.evaluate2(train_model.embedding)
+    # logger.info(f'finish training - {args.serialize()}')
+
+
+def train(cuda, data_args, **model_args):
+    client = get_database_client()
+    db = client.test_database
+    rt = ModelArgs(**model_args)
+    train_and_eval(cuda, data_args, db, rt)
     client.close()
 
 
-# if __name__ == "__main__":
-#     fire.Fire(train)
+if __name__ == "__main__":
+    fire.Fire(train)
