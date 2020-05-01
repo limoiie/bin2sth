@@ -1,10 +1,11 @@
-from src.utils.logger import get_logger
+import numpy as np
 
+from src.utils.logger import get_logger
 
 
 class Corpus:
     """
-    Contains function names and ids
+    Stores function names and ids
     """
     logger = get_logger('Corpus')
 

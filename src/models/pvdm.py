@@ -92,11 +92,11 @@ class FuncEmbedding(torch.nn.Module):
         return v.cuda(self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
 
 
-class CBowNegSample(torch.nn.Module):
-    logger = getLogger('CBowNegSample')
+class CBowPVDM(torch.nn.Module):
+    logger = getLogger('CBowPVDM')
 
     def __init__(self, embedding, doc_embedding, vocab_size, n_negs, word_freq=None):
-        super(CBowNegSample, self).__init__()
+        super(CBowPVDM, self).__init__()
         
         self.embedding = embedding
         self.doc_embedding = doc_embedding
@@ -136,9 +136,6 @@ class CBowNegSample(torch.nn.Module):
         loss = -sim.masked_fill(sim == 0, 1).log().sum(1).mean()
         # loss = loss.log().sum(1).mean()
         return loss, sam_vectors.abs().mean()
-
-        # loss = -torch.bmm(sam_vectors, prd_vectors).squeeze(2).sigmoid().log().sum(1).mean()
-        # return loss, cur_vectors.abs().mean()
 
     def __neg_sample(self, batch_size):
         if self.neg_samp_dist is not None:

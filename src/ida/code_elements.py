@@ -81,6 +81,7 @@ class Function(Serializable):
     def deserialize(self, data):
         super(Function, self).deserialize(data)
         self.blocks = self.from_json_list(Block, data['blocks'])
+        return self
 
 
 class Program(Serializable):
@@ -104,3 +105,4 @@ class Program(Serializable):
         super(Program, self).deserialize(data)
         self.arch = self.from_json(Arch, data['arch'])
         self.funcs = self.from_json_list(Function, data['funcs'])
+        return self

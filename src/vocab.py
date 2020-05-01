@@ -1,5 +1,7 @@
 import logging
 
+import numpy as np
+
 
 class AsmVocab:
     logger = logging.getLogger('AsmVocab')
@@ -82,3 +84,17 @@ class AsmVocab:
             if idx_inst:
                 idx_insts.append(idx_inst)
         return idx_insts
+
+
+def compute_word_freq_ratio(vocab):
+    word_ssr = np.array(vocab.idx2frq)
+    return word_ssr / word_ssr.sum()    
+
+
+def compute_sub_sample_ratio(wf, ss):
+    word_ssr = wf
+    word_ssr[0] = 1
+    word_ssr = np.sqrt(ss / word_ssr) + ss / word_ssr
+    word_ssr = np.clip(word_ssr, 0, 1)
+    word_ssr[0] = 0
+    return word_ssr
