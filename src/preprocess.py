@@ -24,8 +24,6 @@ class DocIter:
         """  map with __call__ and reduce with unite """
         for prog in progs:
             yield self(prog)
-            # for doc in self(prog):
-            # yield doc
 
 
 class DIProxy(DocIter):
@@ -69,26 +67,29 @@ def tokenize(stmts):
 
 
 class DITokenizer(DocIter):
-
+    """ 
+    Tokenize statements in the <prog>. <prog> should be a list of
+    <func>s; each <func> should consist of a label and the stmts 
+    in lines
+    """
     def __call__(self, prog):
-        """ 
-        Tokenize statements in the <prog>. <prog> should be a list of
-        <func>s; each <func> should consist of a label and the stmts 
-        in lines
-        """
+        
         for label, stmts in prog:
             yield label, tokenize(stmts)
 
 
 class DIStmts(DocIter):
-
+    """ Collect function bodys """
     def __call__(self, prog):
         for _, stmts in prog:
             yield stmts
 
 
 class DIUnite(DocIter):
-
+    """ 
+    Unite the list of progs into a list of docs, where each prog 
+    contains a list of docs and each doc corresponding to a function
+    """
     def __call__(self, prog):
         for doc in prog:
             yield doc
@@ -100,12 +101,9 @@ class DIUnite(DocIter):
 
 
 class DICorpus(DocIter):
-    """ 
-    A tap middleware. The function names will be collected
-    and then are used to build the corpus
-    """
+    """ Collect function labels """
     def __call__(self, prog):
-        for label, _insts in prog:
+        for label, _ in prog:
             yield label
 
 
@@ -145,8 +143,10 @@ class CBowDataEnd:
 
     def build(self, docs):
         """ 
-        Do the conversion
-        @param docs: iterator of sentences
+        Process @param docs into a sequence of training data entries.
+        @param docs: iterator of functions. each function consists of 
+        a label, which is program + function_name, and a list of statements,
+        each of which is a list of onehot encoding tokens
         """
         self.logger.debug('building training data...')
 

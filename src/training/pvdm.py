@@ -1,19 +1,12 @@
-import os
-import random
-import fire
-import torch
-import numpy as np
-
-from tqdm import tqdm
 from torch.optim import Adam
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
-from src.database import load_cbow_data_end, get_database_client, load_json_file
 from src.database import ArgsBag
-from src.ida.code_elements import Serializable
-from src.models.pvdm import CBowPVDM, WordEmbedding, FuncEmbedding
-from src.vocab import compute_word_freq_ratio, compute_sub_sample_ratio
+from src.database import load_cbow_data_end, get_database_client, load_json_file
 from src.dataset import CBowDataset
+from src.models.pvdm import CBowPVDM, WordEmbedding, FuncEmbedding
+from src.utils.progress_bar import ProgressBar
+from src.vocab import compute_word_freq_ratio, compute_sub_sample_ratio
 
 
 def parse_data_file(data_args_file):
@@ -23,30 +16,20 @@ def parse_data_file(data_args_file):
     return vocab_args, train_args
 
 
-class ProgressBar:
-    def __init__(self, dataloader, description, update_gap):
-        self.bar = tqdm(dataloader)
-        self.bar.set_description(description)
-        self.update_gap = update_gap
-
-    def feed(self, **args):
-        self.bar.set_postfix(**args)
-
-
-def train_one_epoch(epoch, model, dataset, optim, n_batch):
-    dataloader = DataLoader(dataset, batch_size=n_batch, shuffle=True)
-    progress_bar = ProgressBar(dataloader, f'[Epoch {epoch}]', 100)
+def train_one_epoch(epoch, model, dataset, optimizer, n_batch):
+    data_loader = DataLoader(dataset, batch_size=n_batch, shuffle=True)
+    progress_bar = ProgressBar(data_loader, f'[Epoch {epoch}]', 100)
 
     # TODO: use average loss instead
     step_loss = 0
     for i, (fun, word, ctx) in enumerate(progress_bar.bar):
         # print(f'data entry: ({fun}, {word}, {ctx})')
         loss, mean_vec = model(fun, word, ctx)
-        optim.zero_grad()
+        optimizer.zero_grad()
         loss.backward()
-        optim.step()
+        optimizer.step()
         step_loss = loss.item()
-        progress_bar.feed(loss=step_loss)
+        progress_bar.step(loss=step_loss)
     return step_loss
 
 
@@ -71,12 +54,12 @@ def train(epochs, n_batch, n_emb, n_negs, init_lr, no_hdn,
 
     # create model
     model = CBowPVDM(embedding, doc_embedding, vocab_size, n_negs, wf)
-    optim = Adam(model.parameters(), lr=init_lr)
+    optimizer = Adam(model.parameters(), lr=init_lr)
 
     loss_epochs = []
     for epoch in range(epochs):
         dataset = CBowDataset(data_end, ws)
-        loss = train_one_epoch(epoch, model, dataset, optim, n_batch)
+        loss = train_one_epoch(epoch, model, dataset, optimizer, n_batch)
         loss_epochs.append(loss)
 
     client.close()

@@ -4,19 +4,6 @@ import numpy as np
 from logging import getLogger
 
 
-g_i = 0
-
-def describe_loss(loss):
-    global  g_i
-    if (g_i % 100) == 0:
-        np.set_printoptions(precision=3)
-        x = np.copy(loss.cpu().detach())
-        p, n = x[:,0], x[:,1:].mean(axis=1)
-        print(f'loss mean is \t{p.mean()},\t{n.mean()}')
-        print(f'loss median is \t{np.median(p)},\t{np.median(n)}')
-    g_i += 1
-
-
 class WordEmbedding(torch.nn.Module):
     def __init__(self, vocab_size, embed_size, padding_idx=0, no_hdn=False):
         super(WordEmbedding, self).__init__()
@@ -95,7 +82,7 @@ class FuncEmbedding(torch.nn.Module):
 class CBowPVDM(torch.nn.Module):
     logger = getLogger('CBowPVDM')
 
-    def __init__(self, embedding, doc_embedding, vocab_size, n_negs, word_freq=None):
+    def __init__(self, embedding, doc_embedding, vocab_size, n_negs, wr=None):
         super(CBowPVDM, self).__init__()
         
         self.embedding = embedding
@@ -104,8 +91,8 @@ class CBowPVDM(torch.nn.Module):
         self.n_negs = n_negs
         self.neg_samp_dist = None
 
-        if word_freq is not None:
-            t = np.power(word_freq, 0.75)
+        if wr is not None:
+            t = np.power(wr, 0.75)
             self.neg_samp_dist = torch.FloatTensor(t / t.sum())
 
     def forward(self, fun, word, context):
@@ -113,29 +100,24 @@ class CBowPVDM(torch.nn.Module):
         neg_words = self.__neg_sample(batch_size)
 
         # batch_size * 1 * embed_size
-        cur_vectors = self.embedding.forward_hdn(word).unsqueeze(1)
+        cur_vec = self.embedding.forward_hdn(word).unsqueeze(1)
         # batch_size * n_negs * embed_size
-        neg_vectors = self.embedding.forward_hdn(neg_words).neg()
+        neg_vec = self.embedding.forward_hdn(neg_words).neg()
         # batch_size * (1 + n_negs) * embed_size
-        sam_vectors = torch.cat([cur_vectors, neg_vectors], dim=1)
+        sam_vec = torch.cat([cur_vec, neg_vec], dim=1)
 
         # batch_size * 1 * embed_size
-        fun_vectors = self.doc_embedding.forward(fun).unsqueeze(1)
+        fun_vec = self.doc_embedding.forward(fun).unsqueeze(1)
         # batch_size * ctx_size * embed_size
-        ctx_vectors = self.embedding.forward_vec(context)
+        ctx_vec = self.embedding.forward_vec(context)
         # batch_size * embed_size * 1
-        prd_vectors = torch.cat([fun_vectors, ctx_vectors], dim=1).mean(dim=1).unsqueeze(2)
+        prd_vec = torch.cat([fun_vec, ctx_vec], dim=1).mean(dim=1).unsqueeze(2)
 
-        sim = torch.bmm(sam_vectors, prd_vectors).squeeze(2).sigmoid()
-        # if (sim == 0).any():
-        #     self.logger.warning('There is a 0 in sim!')
-        #     import IPython
-        #     IPython.embed()
-        # describe_loss(sim)
-
+        sim = torch.bmm(sam_vec, prd_vec).squeeze(2).sigmoid()
+ 
         loss = -sim.masked_fill(sim == 0, 1).log().sum(1).mean()
         # loss = loss.log().sum(1).mean()
-        return loss, sam_vectors.abs().mean()
+        return loss, sam_vec.abs().mean()
 
     def __neg_sample(self, batch_size):
         if self.neg_samp_dist is not None:
