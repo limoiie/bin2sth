@@ -50,7 +50,8 @@ class WordEmbedding(torch.nn.Module):
 
     def __cuda_wrap(self, data):
         v = torch.LongTensor(data)
-        return v.cuda(self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
+        return v.cuda(
+            self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
 
 
 class FuncEmbedding(torch.nn.Module):
@@ -76,7 +77,8 @@ class FuncEmbedding(torch.nn.Module):
 
     def __cuda_wrap(self, data):
         v = torch.LongTensor(data)
-        return v.cuda(self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
+        return v.cuda(
+            self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
 
 
 class CBowPVDM(torch.nn.Module):
@@ -84,7 +86,7 @@ class CBowPVDM(torch.nn.Module):
 
     def __init__(self, embedding, doc_embedding, vocab_size, n_negs, wr=None):
         super(CBowPVDM, self).__init__()
-        
+
         self.embedding = embedding
         self.doc_embedding = doc_embedding
         self.vocab_size = vocab_size
@@ -114,7 +116,7 @@ class CBowPVDM(torch.nn.Module):
         prd_vec = torch.cat([fun_vec, ctx_vec], dim=1).mean(dim=1).unsqueeze(2)
 
         sim = torch.bmm(sam_vec, prd_vec).squeeze(2).sigmoid()
- 
+
         loss = -sim.masked_fill(sim == 0, 1).log().sum(1).mean()
         # loss = loss.log().sum(1).mean()
         # return loss, sam_vec.abs().mean()
@@ -132,5 +134,5 @@ class CBowPVDM(torch.nn.Module):
 
     def __neg_sample_in_uniform(self, batch_size):
         # NOTE: I modify [0, vocab_size-1] to [1, vocab_size]
-        return torch.FloatTensor(batch_size, self.n_negs)\
+        return torch.FloatTensor(batch_size, self.n_negs) \
             .uniform_(1, self.vocab_size).long()

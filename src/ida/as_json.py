@@ -1,0 +1,77 @@
+import copy
+import inspect
+import json
+
+
+class AsJson(object):
+    """ `json` is the object in dict type  """
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def dict(self):
+        return AsJson.to_dict(self)
+
+    @staticmethod
+    def dump(file, obj):
+        """
+        Dump obj into :param file in json
+        :param file: file path to which to be dumped
+        :param obj: the object to be dumped
+        """
+        with open(file, 'w') as f:
+            json.dump(AsJson.to_dict(obj), f)
+
+    @staticmethod
+    def load(file, cls):
+        """
+        Load obj from :param file of obj in json
+        :param file: file path where stores the obj in json
+        :param cls: the target class
+        :return: the loaded instance of the given class :param cls
+        """
+        with open(file, 'r') as f:
+            js = json.load(f)
+            return AsJson.from_dict(cls, js)
+
+    @staticmethod
+    def to_dict(obj):
+        if issubclass(obj.__class__, AsJson):
+            return AsJson.to_dict(obj.__dict__)
+
+        cls = type(obj)
+        if cls in [list, set]:
+            return [AsJson.to_dict(v) for v in obj]
+        if cls is dict:
+            return {
+                AsJson.to_dict(k): AsJson.to_dict(v)
+                for k, v in obj.items()
+            }
+
+        return obj
+
+    @staticmethod
+    def from_dict(cls, dic):
+        if inspect.isclass(cls) and issubclass(cls, AsJson):
+            dic = copy.copy(dic)
+            if '__annotations__' in cls.__dict__:
+                for k, field_cls in cls.__annotations__.items():
+                    dic[k] = AsJson.from_dict(field_cls, dic[k])
+            obj = cls()
+            obj.__dict__ = dic
+            return obj
+
+        # when cls is an instance of typing._GenericAlias
+        if '__origin__' in cls.__dict__:
+            ori = cls.__origin__
+            if ori in [list, set]:
+                inner_cls, = cls.__args__
+                return [AsJson.from_dict(inner_cls, v) for v in dic]
+            if ori in [set]:
+                k_cls, v_cls = cls.__args__
+                return {
+                    AsJson.from_dict(k_cls, k): AsJson.from_dict(v_cls, v)
+                    for k, v in dic.items()
+                }
+
+        return dic
