@@ -2,19 +2,13 @@ import json
 
 from pymongo import MongoClient
 
-import numpy as np
-
+from src.corpus import Corpus
 from src.ida.code_elements import Serializable, Program, Arch
-
 from src.preprocess import AsmVocab, CBowDataEnd
 from src.preprocess import DIProxy, DIPure, DIStmts
-from src.preprocess import DITokenizer, DIUnite, DICorpus
+from src.preprocess import DITokenizer, DIUnite
 from src.utils.filter_collection import filter_dict
 from src.utils.list_joint import flat, joint_list
-
-from src.dataset import CBowDataset
-from src.corpus import Corpus
-from src.vocab import compute_sub_sample_ratio
 
 
 def get_database_client():

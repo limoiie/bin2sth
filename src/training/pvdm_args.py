@@ -39,30 +39,23 @@ class TrainArgs(Serializable):
         return self
 
 
-class QueryArgs(Serializable):
+class QueryArgs(TrainArgs):
     def __init__(self, model, rt, vocab: BinArgs, corpus: BinArgs, query):
         """ 
-        @param query: should be a json object which represents the 
+        :param query: should be a json object which represents the
         control condition 
         """
-        self.model = model
-        self.rt = rt
-        self.vocab = vocab
-        self.corpus = corpus
+        super().__init__(model, rt, vocab, corpus)
         self.query = query
 
     def serialize(self):
         dic = super().serialize()
-        dic['rt'] = self.to_json(self.rt)
-        dic['vocab'] = self.to_json(self.vocab)
-        dic['corpus'] = self.to_json(self.corpus)
+        dic['query'] = self.to_json(self.query)
         return dic
 
     def deserialize(self, data):
         super().deserialize(data)
-        self.rt = self.from_json(ModelArgs, data['rt'])
-        self.vocab = self.from_json(BinArgs, data['vocab'])
-        self.corpus = self.from_json(BinArgs, data['corpus'])
+        self.query = self.from_json(BinArgs, data['query'])
         return self
 
 

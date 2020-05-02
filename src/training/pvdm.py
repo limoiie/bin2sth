@@ -1,24 +1,15 @@
-import copy
 import fire
-
 from torch.optim import Adam
-from torch.utils.data import DataLoader
 
-from src.database import BinArgs
-from src.database import load_cbow_data_end, get_database_client, load_json_file
+from src.database import load_cbow_data_end, get_database_client
 from src.dataset import CBowDataset
+from src.evaluating.funcs_accuracy import make_evaluation, Evaluation
 from src.models.pvdm import CBowPVDM, WordEmbedding, FuncEmbedding
-from src.utils.progress_bar import ProgressBar
+from src.training.pvdm_args import ModelArgs
+from src.training.pvdm_args import parse_eval_file
+from src.training.training import train_one_epoch
 from src.utils.logger import get_logger
 from src.vocab import compute_word_freq_ratio, compute_sub_sample_ratio
-
-from src.ida.code_elements import Serializable
-from src.training.training import train_one_epoch
-from src.training.pvdm_args import ModelArgs, parse_data_file
-from src.training.pvdm_args import TrainArgs, QueryArgs, parse_eval_file
-
-from src.evaluating.funcs_accuracy import make_evaluation, Evaluation
-
 
 logger = get_logger('training')
 
@@ -49,8 +40,11 @@ def training(db, rt, cuda, wf, ws, data_end, embedding=None):
 def train_and_eval(cuda, data_args, db, rt):
     """ 
     Training process.
-    @param data_args: a file which contains two serialized instances of
-    @class ArgsBag, each of which represents a bag of bianries
+    :param cuda: specify the gpu core
+    :param data_args: a file which contains two serialized instances of
+    @class ArgsBag, each of which represents a bag of binaries
+    :param db: the database used to fetch train data or store result
+    :param rt: runtime parameters, which is instance of :class ModelArgs
     """
     vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
 
