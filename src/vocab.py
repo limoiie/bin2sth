@@ -64,7 +64,6 @@ class AsmVocab:
         self.idx2frq[0] = 0
         self.tkn2idx[p] = 0
 
-        
         name_freq_pairs = list(self.counter.items())
         name_freq_pairs.sort(key=lambda e: e[1], reverse=True)
 
