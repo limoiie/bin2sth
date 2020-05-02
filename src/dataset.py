@@ -10,7 +10,7 @@ class CBowDataset(Dataset):
         self.data_end = data_end
         if ws is not None:
             def f(w):  # w is of (fun_id, center_word, ctx_words)
-                return random.random() > ws[w[1]]
+                return random.random() < ws[w[1]]
             self.data_end.data = list(filter(f, data_end.data))
 
     def __len__(self):
