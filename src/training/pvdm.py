@@ -17,7 +17,7 @@ from src.training.training import train_one_epoch
 from src.training.pvdm_args import ModelArgs, parse_data_file
 from src.training.pvdm_args import TrainArgs, QueryArgs, parse_eval_file
 
-from src.evaluating.funcs_accuracy import make_evaluation
+from src.evaluating.funcs_accuracy import make_evaluation, Evaluation
 
 
 logger = get_logger('training')
@@ -25,7 +25,7 @@ logger = get_logger('training')
 
 def training(db, rt, cuda, wf, ws, data_end, embedding=None):
     vocab_size, corpus_size = data_end.vocab.size, data_end.corpus.n_docs
-    
+
     fun_embedding = FuncEmbedding(corpus_size, rt.n_emb)
 
     if embedding:  # fix embedding
@@ -67,17 +67,69 @@ def train_and_eval(cuda, data_args, db, rt):
     query_model, query_loss = training(
         db, rt, cuda, wf, ws, query_data, train_model.embedding)
 
+    # import IPython
+    # import logging
+    # logging.getLogger().setLevel('INFO')
+    # IPython.embed()
+
     evaluation = make_evaluation(train_data, query_data, cuda, ws)
     evaluation.evaluate1(train_model.doc_embedding, query_model.doc_embedding)
     evaluation.evaluate2(train_model.embedding)
+
     # logger.info(f'finish training - {args.serialize()}')
+
+
+def do_training(cuda, data_args, db, rt):
+    vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
+
+    train_data = load_cbow_data_end(db, vocab_args, train_corpus, rt.window)
+    query_data = load_cbow_data_end(db, vocab_args, query_corpus, rt.window)
+
+    train_corpus = train_data.corpus
+    query_corpus = query_data.corpus
+
+    vocab = train_data.vocab
+    vocab_size = vocab.size
+
+    wf = compute_word_freq_ratio(train_data.vocab)
+    ws = compute_sub_sample_ratio(wf, rt.ss)
+
+    embedding = WordEmbedding(vocab_size, rt.n_emb, no_hdn=rt.no_hdn)
+
+    tf_embedding = FuncEmbedding(train_corpus.n_docs, rt.n_emb)
+    qf_embedding = FuncEmbedding(query_corpus.n_docs, rt.n_emb)
+
+    train_model = CBowPVDM(embedding, tf_embedding, vocab_size, rt.n_negs, wf)
+    query_model = CBowPVDM(None,      qf_embedding, vocab_size, rt.n_negs, wf)
+
+    train_optim = Adam(train_model.parameters(), lr=rt.init_lr)
+    query_optim = Adam(query_model.parameters(), lr=rt.init_lr)
+
+    query_model.embedding = train_model.embedding
+
+    evaluation = Evaluation(cuda, vocab, ws, train_corpus, query_corpus)
+
+    for epoch in range(1, rt.epochs + 1):
+        train_dataset = CBowDataset(train_data, ws)
+        train_loss = train_one_epoch(
+            epoch, train_model, train_dataset, train_optim, rt.n_batch)
+
+        query_dataset = CBowDataset(query_data, ws)
+        query_loss = train_one_epoch(
+            epoch, query_model, query_dataset, query_optim, rt.n_batch)
+
+        evaluation.evaluate1(tf_embedding, qf_embedding)
+        evaluation.evaluate2(embedding)
+
+    pass
 
 
 def train(cuda, data_args, **model_args):
     client = get_database_client()
     db = client.test_database
     rt = ModelArgs(**model_args)
-    train_and_eval(cuda, data_args, db, rt)
+    # train_and_eval(cuda, data_args, db, rt)
+    do_training(cuda, data_args, db, rt)
     client.close()
 
 

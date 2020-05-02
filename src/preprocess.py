@@ -9,7 +9,8 @@ from src.corpus import Corpus
 def split(line):
     def f(l):
         return len(l) > 0
-    return filter(f, re.split(r'[+\-*@$^&\\\[\]:(),;\s]', line.strip()))
+    tokens = re.split(r'[+\-*@$^&\\\[\]:(),;\s]', line.strip())
+    return list(filter(f, tokens))
 
 
 def label_func(prog, func):
@@ -148,6 +149,7 @@ class CBowDataEnd:
         data = []
         for func_id, stmts in enumerate(self.corpus.idx2ins):
             stmts = self.vocab.onehot_encode(stmts)
+            self.corpus.idx2ins[func_id] = stmts
             for word, context in self.__build_one_doc(stmts):
                 data.append((func_id, word, context))
         self.data = data

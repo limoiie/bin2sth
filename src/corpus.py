@@ -34,7 +34,7 @@ class Corpus:
         for i, (doc, ins) in enumerate(docs):
             self.idx2doc.append(doc)
             self.doc2idx[doc] = i
-            self.idx2ins.append(ins)
+            self.idx2ins.append(list(ins))
         self.n_docs = len(self.doc2idx)
 
     def onehot_encode(self, fun_name):

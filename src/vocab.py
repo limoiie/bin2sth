@@ -33,7 +33,7 @@ class AsmVocab:
 
     def __prepare(self):
         self.total_tkn = 0
-        self.tsizeotal_unique_tkn = 0
+        self.size = 0
         self.counter.clear()
         self.idx2tkn.clear()
         self.idx2frq.clear()
