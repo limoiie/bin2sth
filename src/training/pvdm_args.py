@@ -1,8 +1,8 @@
 import copy
 
-from src.database import BinArgs, load_json_file
+from src.database import BinArgs
 
-from src.ida.as_json import AsJson
+from src.ida.as_json import AsJson, load_json_file
 
 
 class ModelArgs(AsJson):
@@ -30,6 +30,7 @@ class TrainArgs(AsJson):
 
 
 class QueryArgs(TrainArgs):
+    # TODO: consider take train args as a foreign key¬
     rt: ModelArgs
     vocab: BinArgs
     corpus: BinArgs
@@ -45,6 +46,9 @@ class QueryArgs(TrainArgs):
         self.query = query
 
 
+# TODO: now the model args are passed through command line while the
+# the corpus/vocab is setted in a separate conf file. Consider merge
+# them.
 def parse_data_file(data_args_file):
     args = load_json_file(data_args_file)
     vocab_args = AsJson.from_dict(BinArgs, args['vocab'])

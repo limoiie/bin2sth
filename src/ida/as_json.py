@@ -75,3 +75,8 @@ class AsJson(object):
                 }
 
         return dic
+
+
+def load_json_file(file):
+    with open(file, 'r') as f:
+        return json.load(f)

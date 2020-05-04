@@ -4,6 +4,7 @@ import numpy as np
 from logging import getLogger
 
 
+# noinspection PyArgumentList
 class WordEmbedding(torch.nn.Module):
     def __init__(self, vocab_size, embed_size, padding_idx=0, no_hdn=False):
         super(WordEmbedding, self).__init__()
@@ -54,6 +55,7 @@ class WordEmbedding(torch.nn.Module):
             self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
 
 
+# noinspection PyArgumentList
 class FuncEmbedding(torch.nn.Module):
     def __init__(self, corpus_size, embed_size):
         super(FuncEmbedding, self).__init__()
@@ -81,6 +83,7 @@ class FuncEmbedding(torch.nn.Module):
             self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
 
 
+# noinspection PyArgumentList
 class CBowPVDM(torch.nn.Module):
     logger = getLogger('CBowPVDM')
 

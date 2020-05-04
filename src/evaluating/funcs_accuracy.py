@@ -30,6 +30,7 @@ def normalize(tv, qv):
 
 
 class QueryMatrix:
+    # noinspection PyUnresolvedReferences
     def __init__(self, eva, tv, qv):
         self.eva = eva
         self.tv = tv
@@ -82,8 +83,10 @@ class Evaluation:
 
         self.truth = torch.tensor(np.arange(self.n_docs))
 
-        # self.ct_ins = torch.tensor([len(self.tc.idx2ins[i]) for i in self.t_idx])
-        # self.cq_ins = torch.tensor([len(self.qc.idx2ins[i]) for i in self.q_idx])
+        self.ct_ins = torch.tensor(
+            [len(self.tc.idx2ins[i]) for i in self.t_idx])
+        self.cq_ins = torch.tensor(
+            [len(self.qc.idx2ins[i]) for i in self.q_idx])
 
         # self.ct_ins = self.ct_ins.unsqueeze(dim=0)
         # self.cq_ins = self.cq_ins.unsqueeze(dim=1)
