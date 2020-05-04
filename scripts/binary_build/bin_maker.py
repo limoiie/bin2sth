@@ -562,16 +562,17 @@ class WgetMaker(BinMaker):
         super(WgetMaker, self).__init__(src_path, build_path, bin_path)
 
     def _configure_commands(self):
+        flags = self.gnu_options.replace('-static', '')
         return [
             'pwd',
-            f'autoconf -f -i',  # update aclocal files
-            f'./configure {self.cfg_flag} {self.gnu_options}'
+            f'autocreonf',
+            f'./configure {self.cfg_flag} {flags} --without-ssl'
         ]
 
     def _make_commands(self, cc, c_flags):
         return [
             'pwd',
-            f'make {self.gnu_options}'
+            'make'
         ]
 
     def _related_path_to_generated(self):

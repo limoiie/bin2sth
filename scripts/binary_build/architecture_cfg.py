@@ -10,7 +10,7 @@ archs = {
 
 
 def get_default_arch():
-    process = Popen(["ls", "-la", "."], stdout=PIPE)
+    process = Popen(['gcc', '-dumpmachine'], stdout=PIPE)
     (output, _) = process.communicate()
     exit_code = process.wait()
 
@@ -36,7 +36,7 @@ class ArchFlag:
 
 
 def apply_architecture_flag(arch, flags):
-    if arch.arch:
+    if arch.arch and arch.arch != ArchFlag.current_arch:
         flags += f'--host={arch.arch} ' \
                  f'--build={ArchFlag.current_arch}'
     return flags
