@@ -39,9 +39,9 @@ class Program(AsJson):
 
     def __init__(self, prog=None, cc=None, arch=None, opt=None,
                  obf=None, funcs=None, cg=None):
-        self.prog, self.prog_ver = prog
+        self.prog, self.prog_ver = prog if prog else (None, None)
         self.arch = arch
-        self.cc, self.cc_ver = cc
+        self.cc, self.cc_ver = cc if cc else (None, None)
         self.opt = opt
         self.obf = obf
         self.funcs = funcs
