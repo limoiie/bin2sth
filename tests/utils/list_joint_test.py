@@ -19,8 +19,17 @@ class TestJointMethods(unittest.TestCase):
         x = [1, 2]
         xy_ = list(joint(x, [], c=True))
         yx_ = list(joint([], x, c=True))
-        self.assertEqual(x, xy_)
-        self.assertEqual(x, yx_)
+        self.assertEqual(xy_, [
+            [1, None], [2, None]
+        ])
+        self.assertEqual(yx_, [
+            [None, 1], [None, 2]
+        ])
+        xyx = list(joint(xy_, x, c=False))
+        self.assertEqual(xyx, [
+            [1, None, 1], [1, None, 2],
+            [2, None, 1], [2, None, 2],
+        ])
 
     def test_flat(self):
         x = [1, 2]

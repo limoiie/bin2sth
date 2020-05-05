@@ -1,7 +1,7 @@
 import fire
 from torch.optim import Adam
 
-from src.database import load_cbow_data_end, get_database_client
+from src.database.database import load_cbow_data_end, get_database_client
 from src.dataset import CBowDataset
 from src.evaluating.funcs_accuracy import Evaluation
 from src.models.pvdm import CBowPVDM, WordEmbedding, FuncEmbedding

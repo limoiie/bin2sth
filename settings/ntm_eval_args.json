@@ -1,0 +1,68 @@
+{
+  "vocab": {
+    "progs": [
+      "tmp_prog"
+    ],
+    "prog_vers": [
+      ["0.1"]
+    ],
+    "ccs": [
+      "gcc"
+    ],
+    "cc_vers": [
+      ["5"]
+    ],
+    "archs": [
+      {
+        "type": "x86",
+        "bits": "b32",
+        "endian": "be"
+      },
+      {
+        "type": "arm",
+        "bits": "b32",
+        "endian": "be"
+      }
+    ],
+    "opts": [
+      "O3"
+    ],
+    "obfs": [
+    ]
+  },
+  "corpus": {
+    "progs": [
+      "tmp_prog"
+    ],
+    "prog_vers": [
+      ["0.1"]
+    ],
+    "ccs": [
+      "gcc"
+    ],
+    "cc_vers": [
+      ["5"]
+    ],
+    "archs": [
+      {
+        "type": "x86",
+        "bits": "b32",
+        "endian": "be"
+      }
+    ],
+    "opts": [
+      "O3"
+    ],
+    "obfs": [
+    ]
+  },
+  "query": {
+    "archs": [
+      {
+        "type": "arm",
+        "bits": "b32",
+        "endian": "be"
+      }
+    ]
+  }
+}

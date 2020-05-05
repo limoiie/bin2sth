@@ -1,6 +1,7 @@
-from src.preprocess import *
-from src.database import *
+from src.database.database import *
 from pymongo import MongoClient
+
+from src.database.program_dao import BinArgs
 from src.ida.code_elements import *
 
 

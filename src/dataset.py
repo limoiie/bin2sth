@@ -19,3 +19,8 @@ class CBowDataset(Dataset):
     def __getitem__(self, idx):
         fun_id, c_word, ctx_words = self.data_end.data[idx]
         return fun_id, c_word, np.array(ctx_words)
+
+
+class NMTInspiredDataset(Dataset):
+    # TODO: implement this when rewrite NMT-inspired in torch
+    pass

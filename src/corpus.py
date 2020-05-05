@@ -1,5 +1,3 @@
-import numpy as np
-
 from src.utils.logger import get_logger
 
 
@@ -40,5 +38,6 @@ class Corpus:
     def onehot_encode(self, fun_name):
         doc = fun_name
         if doc not in self.doc2idx:
-            raise RuntimeError(f'No doc with name {doc} in corpus! Consider rebuilding it.')
+            raise RuntimeError(f'No doc with name {doc} in corpus! '
+                               f'Consider rebuilding it.')
         return self.doc2idx[doc]

@@ -5,10 +5,10 @@ import numpy as np
 
 class AsmVocab:
     logger = get_logger('AsmVocab')
+    unk = '<unk>'
 
-    def __init__(self, min_freq=0, _max_vocab=10000, unk='</unk>'):
+    def __init__(self, min_freq=0, _max_vocab=10000):
         self.min_freq = min_freq
-        self.unk = unk
         self.total_tkn = 0
         self.size = 0
         self.counter = {}
@@ -65,7 +65,7 @@ class AsmVocab:
         self.tkn2idx[p] = 0
 
         name_freq_pairs = list(self.counter.items())
-        name_freq_pairs.sort(key=lambda e: e[1], reverse=True)
+        # name_freq_pairs.sort(key=lambda e: e[1], reverse=True)
 
         for idx, (name, freq) in enumerate(name_freq_pairs):
             idx += 1
@@ -75,14 +75,16 @@ class AsmVocab:
 
     def onehot_encode(self, insts):
         """ Convert insts in tokens to insts in indexes """
+        if type(insts) is str:
+            if insts in self.tkn2idx:
+                return self.tkn2idx[insts]
+            return None
+
         idx_insts = []
         for inst in insts:
-            idx_inst = []
-            for token in inst:
-                if token in self.tkn2idx:
-                    idx_inst.append(self.tkn2idx[token])
-            if idx_inst:
-                idx_insts.append(idx_inst)
+            encoding = self.onehot_encode(inst)
+            if encoding:
+                idx_insts.append(encoding)
         return idx_insts
 
 
