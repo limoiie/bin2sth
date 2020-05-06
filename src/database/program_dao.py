@@ -5,7 +5,7 @@ from gridfs import GridFS
 from src.database.dao import Dao
 from src.ida.as_json import AsJson
 from src.ida.code_elements import Program, Arch
-from src.utils.filter_collection import strip_dict
+from src.utils.collection_op import strip_dict
 from src.utils.list_joint import flat, joint_list
 
 

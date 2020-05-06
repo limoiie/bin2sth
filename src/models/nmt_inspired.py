@@ -37,13 +37,12 @@ class NMTInspiredModel(t.nn.Module):
         # batch * unites_2nd_layer -> batch * 1
         self.decider = t.nn.Linear(n_lstm_hidden, 1)
 
-    def forward(self, l_input, r_input):
-        # -> batch * seq * emb
-        l_encoded = self.encoder(l_input)
-        r_encoded = self.encoder(r_input)
-        # -> batch * seq * emb
-        l_output, _ = self.shared_lstm(l_encoded)
-        r_output, _ = self.shared_lstm(r_encoded)
+    def forward(self, batch_input):
+        # -> batch * 2 * seq
+        encoded = self.encoder(batch_input)
+        # -> batch * 2 * seq * emb
+        l_output, _ = self.shared_lstm(encoded[:, 0])
+        r_output, _ = self.shared_lstm(encoded[:, 1])
         # -> batch * seq * units_2nd_layer
         dis = t.exp(-t.sum(t.abs(l_output - r_output), dim=1, keepdim=False))
         # -> batch * units_2nd_layer

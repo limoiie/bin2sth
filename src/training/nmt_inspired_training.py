@@ -17,14 +17,17 @@ import fire
 import numpy as np
 import torch as t
 from gensim import models
+from ignite.contrib.metrics import ROC_AUC
+from ignite.engine import create_supervised_trainer, \
+    create_supervised_evaluator, Events
+from ignite.metrics import Loss
 from torch.optim import Adam
+from torch.utils.data import DataLoader
 
 from src.database.database import get_database_client, load_nmt_data_end
 from src.dataset import NMTInspiredDataset
-from src.evaluating.evaluate import evaluate_auc
 from src.models.nmt_inspired import NMTInspiredModel
 from src.training.pvdm_args import parse_eval_file, ModelArgs
-from src.training.training import train_one_epoch_supervised
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
@@ -50,16 +53,17 @@ def train(training):
     # TODO: implement query
     work = do_training if training else do_training
 
-    def proxy(arg_file, **model_args):
+    def proxy(cuda, arg_file, **model_args):
+        cuda = cuda if cuda >= 0 else None
         client = get_database_client()
         db = client.test_database
         rt = ModelArgs(**model_args)
-        work(arg_file, db, rt)
+        work(cuda, arg_file, db, rt)
         client.close()
     return proxy
 
 
-def do_training(data_args, db, rt):
+def do_training(cuda, data_args, db, rt):
     vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
     data_end = load_nmt_data_end(
         db, vocab_args, train_corpus, query_corpus, 101)
@@ -67,47 +71,90 @@ def do_training(data_args, db, rt):
     # Load a trained w2v model
     w2v = models.Word2Vec.load(embedding_weights)
     # this is used to map word in text into one-hot encoding
-    embeddings = make_embedding(data_end.vocab.tkn2idx, w2v)
+    embeddings = make_embedding(data_end.vocab.tkn2idx, rt.n_emb, w2v)
+    embeddings = embeddings.cuda(device=cuda)
 
-    logger.info(f'Shape of embedding: {embeddings.shape}')
-
-    data = t.tensor(data_end.data, dtype=t.long)
-    label = t.tensor(data_end.label, dtype=t.float32)
-
-    X_train, X_valid, X_test = \
-        data[:90000], data[90000:100821], data[:100821]
-    Y_train, Y_valid, Y_test = \
-        label[:90000], label[90000:100821], label[:100821]
-
-    logger.info(f'Shape of test dataset: {X_train.shape}')
+    data = t.tensor(data_end.data, dtype=t.long, device=cuda)
+    label = t.tensor(data_end.label, dtype=t.float32, device=cuda)
 
     model = NMTInspiredModel(data_end.vocab.size, rt.n_emb,
                              embeddings, max_seq_length, n_lstm_hidden)
     optim = Adam(model.parameters(), lr=rt.init_lr)
     loss = t.nn.MSELoss()
 
-    for epoch in range(1, rt.epochs + 1):
-        ds = NMTInspiredDataset(X_train, Y_train)
-        ds_val = NMTInspiredDataset(X_valid, Y_valid)
-        _epoch_loos = train_one_epoch_supervised(
-            epoch, model, ds, ds_val, optim, loss, rt.n_batch)
+    ds, ds_val, ds_test = get_data_loaders(data, label, rt.n_batch)
 
-    pred = model(X_test[:, 0], X_test[:, 1])
-    evaluate_auc(Y_test, pred.detach())
+    trainer = create_supervised_trainer(model, optim, loss, device=cuda)
+    evaluator = create_supervised_evaluator(
+        model, metrics={
+            'auc': ROC_AUC(),
+            'mse': Loss(loss)
+        }, device=cuda
+    )
+
+    attach(trainer, evaluator, ds, ds_val, ds_test)
+
+    trainer.run(ds, max_epochs=rt.epochs)
+
+    # for epoch in range(1, rt.epochs + 1):
+    #     _epoch_loos = train_one_epoch_supervised(
+    #         epoch, model, ds, ds_val, optim, loss, rt.n_batch)
+
+    # pred = model(X_test[:, 0], X_test[:, 1])
+    # evaluate_auc(Y_test, pred.detach())
 
 
-def make_embedding(vocabulary, model):
-    n_emb = model.wv.shape[1]
+def attach(trainer, evaluator, ds, ds_val, ds_test):
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def log_training_loss(engine):
+        print("Epoch[{}] Loss: {:.2f}".format(
+            engine.state.epoch, engine.state.output))
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_training_results(engine):
+        evaluator.run(ds)
+        metrics = evaluator.state.metrics
+        print("Training Results f Epoch: {}  "
+              "Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(engine.state.epoch, metrics['auc'], metrics['mse']))
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_validation_results(engine):
+        evaluator.run(ds_val)
+        metrics = evaluator.state.metrics
+        print("Validation Results - Epoch: {}  "
+              "Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(engine.state.epoch, metrics['auc'], metrics['mse']))
+
+
+def make_embedding(vocabulary, n_emb, model):
     # This will be the embedding matrix
-    embeddings = np.random.randn(len(vocabulary), n_emb)
+    embeddings = t.randn(len(vocabulary), n_emb, dtype=t.float32)
     embeddings[0] = 0  # So that the padding will be ignored
 
     # Build the embedding matrix, please refer to the meeting slides for
     # more detailed explanation
     for word, index in vocabulary.items():
         if word in model.wv:
-            embeddings[index] = model.wv[word]
-    return embeddings.astype(np.float32)
+            embeddings[index] = t.tensor(model.wv[word], dtype=t.float32)
+    return embeddings
+
+
+def get_data_loaders(data, label, n_batch):
+    X_train, X_valid, X_test = \
+        data[:90000], data[90000:100821], data[:100821]
+    Y_train, Y_valid, Y_test = \
+        label[:90000], label[90000:100821], label[:100821]
+
+    def create(x, y, batch_size, shuffle=True):
+        return DataLoader(NMTInspiredDataset(x, y),
+                          batch_size=batch_size, shuffle=shuffle)
+
+    train_ds = create(X_train, Y_train, n_batch)
+    valid_ds = create(X_valid, Y_valid, n_batch)
+    test_ds = create(X_test, Y_test, n_batch)
+
+    return train_ds, valid_ds, test_ds
 
 
 if __name__ == '__main__':

@@ -32,9 +32,10 @@ class NMTInspiredDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        lx, rx = self.data[idx]
-        y = self.label[idx]
-        return (lx, rx), y
+        # lx, rx = self.data[idx]
+        # y = self.label[idx]
+        # return (lx, rx), y
+        return self.data[idx], self.label[idx]
 
     def get_x(self):
         return self.data
