@@ -6,3 +6,5 @@ build/
 __pycache__/
 .pytest_cache/
 src/training/.tmp
+*.i64
+.out/
