@@ -2,9 +2,10 @@
 .vscode
 .idea
 out/
+.out/
 build/
 __pycache__/
 .pytest_cache/
+*.pyc
 src/training/.tmp
 *.i64
-.out/
