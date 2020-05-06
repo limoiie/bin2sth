@@ -14,7 +14,6 @@ which is the official implement of zuo2019neural.
 """
 
 import fire
-import numpy as np
 import torch as t
 from gensim import models
 from ignite.contrib.metrics import ROC_AUC
@@ -45,9 +44,6 @@ embedding_weights = \
 max_seq_length = 101
 n_lstm_hidden = 64
 
-questions_cols = ['x86_bb', 'arm_bb']
-label_col = 'eq'
-
 
 def train(training):
     # TODO: implement query
@@ -66,7 +62,7 @@ def train(training):
 def do_training(cuda, data_args, db, rt):
     vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
     data_end = load_nmt_data_end(
-        db, vocab_args, train_corpus, query_corpus, 101)
+        db, vocab_args, train_corpus, query_corpus, max_seq_length)
 
     # Load a trained w2v model
     w2v = models.Word2Vec.load(embedding_weights)
