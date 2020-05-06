@@ -16,6 +16,7 @@ which is the official implement of zuo2019neural.
 import fire
 import torch as t
 from gensim import models
+from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
 from ignite.engine import create_supervised_trainer, \
     create_supervised_evaluator, Events
@@ -90,6 +91,9 @@ def do_training(cuda, data_args, db, rt):
 
     attach(trainer, evaluator, ds, ds_val, ds_test)
 
+    pbar = ProgressBar(persist=True)
+    pbar.attach(trainer, ['auc', 'mse'])
+
     trainer.run(ds, max_epochs=rt.epochs)
 
     # for epoch in range(1, rt.epochs + 1):
@@ -101,11 +105,11 @@ def do_training(cuda, data_args, db, rt):
 
 
 def attach(trainer, evaluator, ds, ds_val, ds_test):
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def log_training_loss(engine):
-        print("Epoch[{}] Loss: {:.2f}".format(
-            engine.state.epoch, engine.state.output))
-
+    # @trainer.on(Events.ITERATION_COMPLETED)
+    # def log_training_loss(engine):
+    #     print("Epoch[{}] Loss: {:.2f}".format(
+    #         engine.state.epoch, engine.state.output))
+    #
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
         evaluator.run(ds)
