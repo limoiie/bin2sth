@@ -106,22 +106,35 @@ def do_training(cuda, data_args, db, rt):
     # evaluate_auc(Y_test, pred.detach())
 
 
-def attach(trainer, evaluator, ds, ds_val, ds_test):
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def log_training_results(engine):
-        evaluator.run(ds)
-        metrics = evaluator.state.metrics
-        print("Training Results f Epoch: {}  "
-              "Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, metrics['auc'], metrics['mse']))
+def attach(trainer, evaluator, ds_train, ds_val, ds_test):
+    def eval_on(ds, tag, event):
+        @trainer.on(event)
+        def log_eval_results(engine):
+            evaluator.run(ds)
+            metrics = evaluator.state.metrics
+            print("{} Results f Epoch: {}  "
+                  "Avg accuracy: {:.2f} Avg loss: {:.2f}"
+                  .format(tag, engine.state.epoch,
+                          metrics['auc'], metrics['mse']))
 
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(engine):
-        evaluator.run(ds_val)
-        metrics = evaluator.state.metrics
-        print("Validation Results - Epoch: {}  "
-              "Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, metrics['auc'], metrics['mse']))
+    eval_on(ds_train, 'Training', Events.EPOCH_COMPLETED)
+    eval_on(ds_val, 'Validation', Events.EPOCH_COMPLETED)
+    eval_on(ds_test, 'Testing', Events.COMPLETED)
+    # @trainer.on(Events.EPOCH_COMPLETED)
+    # def log_training_results(engine):
+    #     evaluator.run(ds_train)
+    #     metrics = evaluator.state.metrics
+    #     print("Training Results f Epoch: {}  "
+    #           "Avg accuracy: {:.2f} Avg loss: {:.2f}"
+    #           .format(engine.state.epoch, metrics['auc'], metrics['mse']))
+    #
+    # @trainer.on(Events.EPOCH_COMPLETED)
+    # def log_validation_results(engine):
+    #     evaluator.run(ds_val)
+    #     metrics = evaluator.state.metrics
+    #     print("Validation Results - Epoch: {}  "
+    #           "Avg accuracy: {:.2f} Avg loss: {:.2f}"
+    #           .format(engine.state.epoch, metrics['auc'], metrics['mse']))
 
 
 def make_embedding(vocabulary, n_emb, model):
