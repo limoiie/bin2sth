@@ -258,8 +258,7 @@ class CoreUtilsMaker(BinMaker):
         ]
 
 
-# FIXME: require a version no.
-# @maker_register('gmp')
+@maker_register('gmp@6.1.2')
 class GmpMaker(BinMaker):
     def __init__(self, src_path, build_path, bin_path):
         super(GmpMaker, self).__init__(src_path, build_path, bin_path)
@@ -284,7 +283,7 @@ class GmpMaker(BinMaker):
         ]
 
 
-@maker_register('zlib@v1.2.11')
+@maker_register('zlib@1.2.11')
 class ZlibMaker(BinMaker):
     def __init__(self, src_path, build_path, bin_path):
         super(ZlibMaker, self).__init__(src_path, build_path, bin_path)

@@ -18,7 +18,7 @@ class CBowDataEnd:
         self.vocab = vocab
         self.corpus = corpus
         self.data = []
-        # todo: assert corpus has been encoded in one-hot
+        assert is_collection_of(corpus.idx2ins, [int])
 
     def __unk_list(self, l):
         return [self.vocab.unk] * l
@@ -46,3 +46,19 @@ class CBowDataEnd:
         self.data = data
 
         self.logger.debug('building training data done')
+
+
+def is_collection_of(m, cls, early_break=True):
+    """
+    Is :param m a collection of instances of :param cls
+    :param m: the collection
+    :param cls: a list of classes of the expected instance
+    :param early_break: just check one non-collection item
+    """
+    typ = type(m)
+    if typ in cls:
+        return True
+    if typ is list:
+        for i in m:
+            return is_collection_of(i, cls, early_break)
+    return False
