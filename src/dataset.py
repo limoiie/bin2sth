@@ -22,5 +22,16 @@ class CBowDataset(Dataset):
 
 
 class NMTInspiredDataset(Dataset):
-    # TODO: implement this when rewrite NMT-inspired in torch
-    pass
+    def __init__(self, data, label):
+        self.data = data
+        self.label = label
+        # data should be consistant with label
+        assert len(self.data) == len(self.label)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        lx, rx = self.data[idx]
+        y = self.label[idx]
+        return (lx, rx), y

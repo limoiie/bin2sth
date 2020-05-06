@@ -1,3 +1,4 @@
+from IPython import embed
 import fire
 from torch.optim import Adam
 

@@ -71,29 +71,8 @@ def load_cbow_data_end(db, vocab_args, args: BinArgs, window):
     return data
 
 
-def fix_vocab(vocab):
-    """
-    FIXME!!! this is a dirty hack for correct the vocabulary so that
-      we reuse the pretrained nmt-inspired network. if we change the
-      vocabulary even only a little, the network will just downgrade
-      very significantly. remove this once we train the network by
-      our own
-    """
-    import json
-    import copy
-    frq = copy.deepcopy(vocab.idx2frq)
-    with open('.tmp/nmt_inspired/vocabulary.json') as f:
-        v = json.load(f)
-        for i, word in enumerate(v):
-            vocab.idx2frq[i] = frq[vocab.tkn2idx[word]]
-            vocab.idx2tkn[i] = word
-            vocab.tkn2idx[word] = i
-    return vocab
-
-
 def load_nmt_data_end(db, vocab_args, args1, args2, maxlen):
     vocab = load_inst_vocab(db, vocab_args)
-    fix_vocab(vocab)  # fixme: remove this once train the network by ourself
     corpus1 = load_corpus_with_padding(db, args1, vocab, maxlen)
     corpus2 = load_corpus_with_padding(db, args2, vocab, maxlen)
     data = NMTInsDataEnd(vocab, corpus1, corpus2)
