@@ -19,15 +19,15 @@ from gensim import models
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
 from ignite.engine import create_supervised_trainer, \
-    create_supervised_evaluator, Events
+    create_supervised_evaluator
 from ignite.metrics import Loss, RunningAverage
 from torch.optim import Adam
-from torch.utils.data import DataLoader
 
 from src.database.database import get_database_client, load_nmt_data_end
-from src.dataset import NMTInspiredDataset
+from src.dataset import get_data_loaders
 from src.models.nmt_inspired import NMTInspiredModel
 from src.training.pvdm_args import parse_eval_file, ModelArgs
+from src.training.training import attach_stages
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
@@ -89,29 +89,13 @@ def do_training(cuda, data_args, db, rt):
         }, device=cuda
     )
 
-    attach(trainer, evaluator, ds, ds_val, ds_test)
+    attach_stages(trainer, evaluator, ds, ds_val, ds_test)
 
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'batch_loss')
     pbar = ProgressBar()
     pbar.attach(trainer, ['batch_loss'])
 
     trainer.run(ds, max_epochs=rt.epochs)
-
-
-def attach(trainer, evaluator, ds_train, ds_val, ds_test):
-    def eval_on(ds, tag, event):
-        @trainer.on(event)
-        def log_eval_results(engine):
-            evaluator.run(ds)
-            metrics = evaluator.state.metrics
-            print("{} Results f Epoch: {}  "
-                  "Avg accuracy: {:.2f} Avg loss: {:.2f}"
-                  .format(tag, engine.state.epoch,
-                          metrics['auc'], metrics['mse']))
-
-    eval_on(ds_train, 'Training', Events.EPOCH_COMPLETED)
-    eval_on(ds_val, 'Validation', Events.EPOCH_COMPLETED)
-    eval_on(ds_test, 'Testing', Events.COMPLETED)
 
 
 def make_embedding(vocabulary, n_emb, model):
@@ -125,23 +109,6 @@ def make_embedding(vocabulary, n_emb, model):
         if word in model.wv:
             embeddings[index] = t.tensor(model.wv[word].copy(), dtype=t.float32)
     return embeddings
-
-
-def get_data_loaders(data, label, n_batch):
-    X_train, X_valid, X_test = \
-        data[:90000], data[90000:100821], data[:100821]
-    Y_train, Y_valid, Y_test = \
-        label[:90000], label[90000:100821], label[:100821]
-
-    def create(x, y, batch_size, shuffle=True):
-        return DataLoader(NMTInspiredDataset(x, y),
-                          batch_size=batch_size, shuffle=shuffle)
-
-    train_ds = create(X_train, Y_train, n_batch)
-    valid_ds = create(X_valid, Y_valid, n_batch)
-    test_ds = create(X_test, Y_test, n_batch)
-
-    return train_ds, valid_ds, test_ds
 
 
 if __name__ == '__main__':

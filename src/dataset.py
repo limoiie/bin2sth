@@ -1,7 +1,7 @@
 import random
 
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 
 class CBowDataset(Dataset):
@@ -42,3 +42,20 @@ class NMTInspiredDataset(Dataset):
 
     def get_y(self):
         return self.label
+
+
+def get_data_loaders(data, label, n_batch):
+    X_train, X_valid, X_test = \
+        data[:90000], data[90000:100821], data[:100821]
+    Y_train, Y_valid, Y_test = \
+        label[:90000], label[90000:100821], label[:100821]
+
+    def create(x, y, batch_size, shuffle=True):
+        return DataLoader(NMTInspiredDataset(x, y),
+                          batch_size=batch_size, shuffle=shuffle)
+
+    train_ds = create(X_train, Y_train, n_batch)
+    valid_ds = create(X_valid, Y_valid, n_batch)
+    test_ds = create(X_test, Y_test, n_batch)
+
+    return train_ds, valid_ds, test_ds

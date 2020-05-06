@@ -1,3 +1,4 @@
+from ignite.engine import Events
 from torch.utils.data import DataLoader
 
 from src.utils.progress_bar import ProgressBar
@@ -20,18 +21,17 @@ def train_one_epoch(epoch, model, dataset, optimizer, n_batch):
     return step_loss
 
 
-def train_one_epoch_supervised(epoch, model, dataset, valid_dataset,
-                               optimizer, loss, n_batch, update_gap=100):
-    data_loader = DataLoader(dataset, batch_size=n_batch, shuffle=True)
-    progress_bar = ProgressBar(data_loader, f'[Epoch {epoch}]', 100)
+def attach_stages(trainer, evaluator, ds_train, ds_val, ds_test):
+    def eval_on(ds, tag, event):
+        @trainer.on(event)
+        def log_eval_results(engine):
+            evaluator.run(ds)
+            metrics = evaluator.state.metrics
+            print("{} Results f Epoch: {}  "
+                  "Avg accuracy: {:.2f} Avg loss: {:.2f}"
+                  .format(tag, engine.state.epoch,
+                          metrics['auc'], metrics['mse']))
 
-    step_loss = 0
-    for i, (x, y) in enumerate(progress_bar.bar):
-        pred_y = model(*x)
-        optimizer.zero_grad()
-        loss_v = loss(pred_y, y)
-        loss_v.backward()
-        optimizer.step()
-        step_loss = loss_v.item()
-        progress_bar.step(loss=f'{step_loss:.03F}')
-    return step_loss
+    eval_on(ds_train, 'Training', Events.EPOCH_COMPLETED)
+    eval_on(ds_val, 'Validation', Events.EPOCH_COMPLETED)
+    eval_on(ds_test, 'Testing', Events.COMPLETED)
