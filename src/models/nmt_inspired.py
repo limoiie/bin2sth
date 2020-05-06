@@ -27,7 +27,7 @@ class NMTInspiredModel(t.nn.Module):
 
         # batch * seq * emb -> batch * seq * emb
         self.encoder = t.nn.Embedding(
-            vocab_size, n_emb, _weight=t.tensor(w_embedding))
+            vocab_size, n_emb, _weight=w_embedding.clone().detach())
         layer_trainable(self.encoder, False)
 
         # batch * seq * emb -> batch * seq * unites_2nd_layer
