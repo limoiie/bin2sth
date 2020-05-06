@@ -14,7 +14,6 @@ which is the official implement of zuo2019neural.
 """
 
 import fire
-import ignite
 import torch as t
 from gensim import models
 from ignite.contrib.handlers import ProgressBar
@@ -98,13 +97,6 @@ def do_training(cuda, data_args, db, rt):
 
     trainer.run(ds, max_epochs=rt.epochs)
 
-    # for epoch in range(1, rt.epochs + 1):
-    #     _epoch_loos = train_one_epoch_supervised(
-    #         epoch, model, ds, ds_val, optim, loss, rt.n_batch)
-
-    # pred = model(X_test[:, 0], X_test[:, 1])
-    # evaluate_auc(Y_test, pred.detach())
-
 
 def attach(trainer, evaluator, ds_train, ds_val, ds_test):
     def eval_on(ds, tag, event):
@@ -120,21 +112,6 @@ def attach(trainer, evaluator, ds_train, ds_val, ds_test):
     eval_on(ds_train, 'Training', Events.EPOCH_COMPLETED)
     eval_on(ds_val, 'Validation', Events.EPOCH_COMPLETED)
     eval_on(ds_test, 'Testing', Events.COMPLETED)
-    # @trainer.on(Events.EPOCH_COMPLETED)
-    # def log_training_results(engine):
-    #     evaluator.run(ds_train)
-    #     metrics = evaluator.state.metrics
-    #     print("Training Results f Epoch: {}  "
-    #           "Avg accuracy: {:.2f} Avg loss: {:.2f}"
-    #           .format(engine.state.epoch, metrics['auc'], metrics['mse']))
-    #
-    # @trainer.on(Events.EPOCH_COMPLETED)
-    # def log_validation_results(engine):
-    #     evaluator.run(ds_val)
-    #     metrics = evaluator.state.metrics
-    #     print("Validation Results - Epoch: {}  "
-    #           "Avg accuracy: {:.2f} Avg loss: {:.2f}"
-    #           .format(engine.state.epoch, metrics['auc'], metrics['mse']))
 
 
 def make_embedding(vocabulary, n_emb, model):
