@@ -93,7 +93,7 @@ def do_training(cuda, data_args, db, rt):
     attach(trainer, evaluator, ds, ds_val, ds_test)
 
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'batch_loss')
-    pbar = ProgressBar(persist=True)
+    pbar = ProgressBar()
     pbar.attach(trainer, ['batch_loss'])
 
     trainer.run(ds, max_epochs=rt.epochs)
