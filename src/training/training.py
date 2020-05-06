@@ -21,7 +21,7 @@ def train_one_epoch(epoch, model, dataset, optimizer, n_batch):
 
 
 def train_one_epoch_supervised(epoch, model, dataset, valid_dataset,
-                               optimizer, loss, n_batch):
+                               optimizer, loss, n_batch, update_gap=100):
     data_loader = DataLoader(dataset, batch_size=n_batch, shuffle=True)
     progress_bar = ProgressBar(data_loader, f'[Epoch {epoch}]', 100)
 
@@ -29,10 +29,9 @@ def train_one_epoch_supervised(epoch, model, dataset, valid_dataset,
     for i, (x, y) in enumerate(progress_bar.bar):
         pred_y = model(*x)
         optimizer.zero_grad()
-        print(f'shape of y: {pred_y.shape}, {y.shape}')
         loss_v = loss(pred_y, y)
         loss_v.backward()
         optimizer.step()
         step_loss = loss_v.item()
-        progress_bar.step(loss=f'{step_loss:.03}')
+        progress_bar.step(loss=f'{step_loss:.03F}')
     return step_loss

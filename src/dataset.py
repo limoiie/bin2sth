@@ -35,3 +35,9 @@ class NMTInspiredDataset(Dataset):
         lx, rx = self.data[idx]
         y = self.label[idx]
         return (lx, rx), y
+
+    def get_x(self):
+        return self.data
+
+    def get_y(self):
+        return self.label

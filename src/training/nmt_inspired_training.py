@@ -22,34 +22,33 @@ from torch.optim import Adam
 from src.database.database import get_database_client, load_nmt_data_end
 from src.dataset import NMTInspiredDataset
 from src.evaluating.evaluate import evaluate_auc
-from src.models.nmt_inspired import NMTInspiredModel, NMTInspiredModel2
+from src.models.nmt_inspired import NMTInspiredModel
 from src.training.pvdm_args import parse_eval_file, ModelArgs
 from src.training.training import train_one_epoch_supervised
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
 
-tmp_folder = '.tmp/nmt_inspired'
+tmp_folder = 'src/training/.tmp/nmt_inspired'
 
-TRAIN_CSV = f'{tmp_folder}/train_set_O2.csv'
-TEST_CSV = f'{tmp_folder}/test_set_O2.csv'
+# TRAIN_CSV = f'{tmp_folder}/train_set_O2.csv'
+# TEST_CSV = f'{tmp_folder}/test_set_O2.csv'
 
-saved_weights = f'{tmp_folder}/siamese_model_100DW2V_2HL_50HU_O2.ourown.hdf5'
+# saved_weights = f'{tmp_folder}/siamese_model_100DW2V_2HL_50HU_O2.ourown.hdf5'
 embedding_weights = \
     f'{tmp_folder}/100D_MinWordCount0_downSample1e-5_trained100epoch_L.w2v'
 
 # Inpute size
-w2v_dim = 100
-embedding_dim = w2v_dim
-
 max_seq_length = 101
+n_lstm_hidden = 64
 
 questions_cols = ['x86_bb', 'arm_bb']
 label_col = 'eq'
 
 
 def train(training):
-    work = do_training if training else do_querying
+    # TODO: implement query
+    work = do_training if training else do_training
 
     def proxy(arg_file, **model_args):
         client = get_database_client()
@@ -58,43 +57,6 @@ def train(training):
         work(arg_file, db, rt)
         client.close()
     return proxy
-
-
-# def do_training(data_args, db, rt):
-#     vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
-#     data_end = load_nmt_data_end(
-#         db, vocab_args, train_corpus, query_corpus, 101)
-#
-#     # Load a trained w2v model
-#     model = models.Word2Vec.load(embedding_weights)
-#     # this is used to map word in text into one-hot encoding
-#     embeddings = make_embedding(data_end.vocab.tkn2idx, model)
-#
-#     logger.info(f'Shape of embedding: {embeddings.shape}')
-#
-#     X_train = np.array(data_end.data[:90000])
-#     Y_train = np.array(data_end.label[:90000])
-#
-#     X_valid = np.array(data_end.data[90000:100821])
-#     Y_valid = np.array(data_end.label[90000:100821])
-#
-#     X_test = np.array(data_end.data[:100821])
-#     Y_test = np.array(data_end.label[:100821])
-#
-#     logger.info(f'Shape of test dataset: {X_train.shape}')
-#
-#     smodel = NMTInspiredModel(embeddings, embedding_dim)
-#     smodel.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
-#                    loss=keras.losses.MeanSquaredError(),
-#                    metrics=[keras.metrics.AUC()])
-#
-#     smodel.fit([X_train[:, 0], X_train[:, 1]], Y_train,
-#                batch_size=64, epochs=2,
-#                validation_data=([X_valid[:, 0], X_valid[:, 1]], Y_valid))
-#
-#     pred = smodel.predict([X_test[:, 0], X_test[:, 1]])
-#
-#     evaluate_auc(Y_test, pred)
 
 
 def do_training(data_args, db, rt):
@@ -119,8 +81,8 @@ def do_training(data_args, db, rt):
 
     logger.info(f'Shape of test dataset: {X_train.shape}')
 
-    model = NMTInspiredModel2(data_end.vocab.size, embedding_dim,
-                              embeddings, max_seq_length)
+    model = NMTInspiredModel(data_end.vocab.size, rt.n_emb,
+                             embeddings, max_seq_length, n_lstm_hidden)
     optim = Adam(model.parameters(), lr=rt.init_lr)
     loss = t.nn.MSELoss()
 
@@ -130,50 +92,14 @@ def do_training(data_args, db, rt):
         _epoch_loos = train_one_epoch_supervised(
             epoch, model, ds, ds_val, optim, loss, rt.n_batch)
 
-    # smodel = NMTInspiredModel(embeddings, embedding_dim)
-    # smodel.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
-    #                loss=keras.losses.MeanSquaredError(),
-    #                metrics=[keras.metrics.AUC()])
-
-    # smodel.fit([X_train[:, 0], X_train[:, 1]], Y_train,
-    #            batch_size=64, epochs=2,
-    #            validation_data=([X_valid[:, 0], X_valid[:, 1]], Y_valid))
-
     pred = model(X_test[:, 0], X_test[:, 1])
-
     evaluate_auc(Y_test, pred.detach())
 
 
-def do_querying(data_args, db, rt):
-    vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
-    data_end = load_nmt_data_end(
-        db, vocab_args, train_corpus, query_corpus, 101)
-
-    logger.info(f'Size of vocabulary: {data_end.vocab.size}')
-
-    # Load a trained w2v model
-    model = models.Word2Vec.load(embedding_weights)
-    # this is used to map word in text into one-hot encoding
-    embeddings = make_embedding(data_end.vocab.tkn2idx, model)
-
-    logger.info(f'Shape of embedding: {embeddings.shape}')
-
-    X_test = np.array(data_end.data[100821:])
-    Y_test = np.array(data_end.label[100821:])
-
-    logger.info(f'Shape of test dataset: {X_test.shape}')
-
-    smodel = NMTInspiredModel(embeddings, embedding_dim)
-    smodel.load_weights(saved_weights)
-
-    pred = smodel.predict([X_test[:, 0], X_test[:, 1]])
-
-    evaluate_auc(Y_test, pred)
-
-
 def make_embedding(vocabulary, model):
+    n_emb = model.wv.shape[1]
     # This will be the embedding matrix
-    embeddings = np.random.randn(len(vocabulary), embedding_dim)
+    embeddings = np.random.randn(len(vocabulary), n_emb)
     embeddings[0] = 0  # So that the padding will be ignored
 
     # Build the embedding matrix, please refer to the meeting slides for
