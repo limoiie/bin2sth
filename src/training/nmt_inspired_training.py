@@ -21,7 +21,7 @@ from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
 from ignite.engine import create_supervised_trainer, \
     create_supervised_evaluator, Events
-from ignite.metrics import Loss
+from ignite.metrics import Loss, RunningAverage
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
@@ -92,8 +92,7 @@ def do_training(cuda, data_args, db, rt):
 
     attach(trainer, evaluator, ds, ds_val, ds_test)
 
-    ignite.metrics.MeanSquaredError(
-        output_transform=lambda x: x).attach(trainer, 'batch_loss')
+    RunningAverage(output_transform=lambda x: x).attach(trainer, 'batch_loss')
     pbar = ProgressBar(persist=True)
     pbar.attach(trainer, ['batch_loss'])
 
@@ -134,7 +133,7 @@ def make_embedding(vocabulary, n_emb, model):
     # more detailed explanation
     for word, index in vocabulary.items():
         if word in model.wv:
-            embeddings[index] = t.tensor(model.wv[word], dtype=t.float32)
+            embeddings[index] = t.tensor(model.wv[word].copy(), dtype=t.float32)
     return embeddings
 
 
