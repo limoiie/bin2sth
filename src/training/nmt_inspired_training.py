@@ -92,7 +92,7 @@ def do_training(cuda, data_args, db, rt):
     attach(trainer, evaluator, ds, ds_val, ds_test)
 
     pbar = ProgressBar(persist=True)
-    pbar.attach(trainer, ['auc', 'mse'])
+    pbar.attach(trainer, ['step_loss'])
 
     trainer.run(ds, max_epochs=rt.epochs)
 
@@ -105,11 +105,12 @@ def do_training(cuda, data_args, db, rt):
 
 
 def attach(trainer, evaluator, ds, ds_val, ds_test):
-    # @trainer.on(Events.ITERATION_COMPLETED)
-    # def log_training_loss(engine):
-    #     print("Epoch[{}] Loss: {:.2f}".format(
-    #         engine.state.epoch, engine.state.output))
-    #
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def log_training_loss(engine):
+        # print("Epoch[{}] Loss: {:.2f}".format(
+        #     engine.state.epoch, engine.state.output))
+        engine.state.metrics['batch_loss'] = engine.state.output
+
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
         evaluator.run(ds)
