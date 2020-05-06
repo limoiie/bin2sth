@@ -14,6 +14,7 @@ which is the official implement of zuo2019neural.
 """
 
 import fire
+import ignite
 import torch as t
 from gensim import models
 from ignite.contrib.handlers import ProgressBar
@@ -91,8 +92,10 @@ def do_training(cuda, data_args, db, rt):
 
     attach(trainer, evaluator, ds, ds_val, ds_test)
 
+    ignite.metrics.MeanSquaredError(
+        output_transform=lambda x: x).attach(trainer, 'batch_loss')
     pbar = ProgressBar(persist=True)
-    pbar.attach(trainer, ['step_loss'])
+    pbar.attach(trainer, ['batch_loss'])
 
     trainer.run(ds, max_epochs=rt.epochs)
 
@@ -105,12 +108,6 @@ def do_training(cuda, data_args, db, rt):
 
 
 def attach(trainer, evaluator, ds, ds_val, ds_test):
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def log_training_loss(engine):
-        # print("Epoch[{}] Loss: {:.2f}".format(
-        #     engine.state.epoch, engine.state.output))
-        engine.state.metrics['batch_loss'] = engine.state.output
-
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
         evaluator.run(ds)
