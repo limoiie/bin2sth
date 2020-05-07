@@ -6,12 +6,12 @@ epochs=$3
 
 if [ "$action" == "nmt_inspired" ]; then
   echo python src/training/nmt_inspired_training.py train \
-    --data_args="settings/nmt_eval_args.json" --cuda="${cuda}" \
+    --arg_file="settings/nmt_eval_args.json" --cuda="${cuda}" \
     --epochs="$epochs" --n_batch=64 --n_emb=100 --n_negs=20 \
     --init_lr=1e-3 --no_hdn=False --ss=1e-4 --window=5
 
   python src/training/nmt_inspired_training.py train \
-    --data_args="settings/nmt_eval_args.json" --cuda="${cuda}" \
+    --arg_file="settings/nmt_eval_args.json" --cuda="${cuda}" \
     --epochs="$epochs" --n_batch=64 --n_emb=100 --n_negs=20 \
     --init_lr=1e-3 --no_hdn=False --ss=1e-4 --window=5
 fi
