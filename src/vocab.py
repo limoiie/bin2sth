@@ -96,16 +96,3 @@ class AsmVocab:
         word_ssr = np.clip(word_ssr, 0, 1)
         word_ssr[0] = 0
         return word_ssr
-
-
-def compute_word_freq_ratio(vocab):
-    return vocab.word_freq_ratio()
-
-
-def compute_sub_sample_ratio(wf, ss):
-    word_ssr = wf
-    word_ssr[0] = 1
-    word_ssr = np.sqrt(ss / word_ssr) + ss / word_ssr
-    word_ssr = np.clip(word_ssr, 0, 1)
-    word_ssr[0] = 0
-    return word_ssr

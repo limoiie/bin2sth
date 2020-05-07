@@ -2,13 +2,11 @@ from pymongo import MongoClient
 
 from src.corpus import Corpus
 from src.database.program_dao import BinArgs, load_progs_jointly
-
-from src.preprocesses.cbow_pp import CBowDataEnd, CBowDatasetBuilder
-from src.preprocesses.nmt_inspired_pp import DIPadding, NMTInsDataEnd
 from src.preprocess import DIOneHotEncode, DIInstTokenizer
 from src.preprocess import DIProxy, DIPure, DIStmts
 from src.preprocess import DITokenizer, DIMergeProgs
-
+from src.preprocesses.cbow_pp import CBowDatasetBuilder
+from src.preprocesses.nmt_inspired_pp import DIPadding, NMTInsDataEnd
 from src.vocab import AsmVocab
 
 
