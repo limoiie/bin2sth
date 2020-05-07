@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from src.corpus import Corpus
 from src.database.program_dao import BinArgs, load_progs_jointly
 
-from src.preprocesses.cbow_pp import CBowDataEnd
+from src.preprocesses.cbow_pp import CBowDataEnd, CBowDatasetBuilder
 from src.preprocesses.nmt_inspired_pp import DIPadding, NMTInsDataEnd
 from src.preprocess import DIOneHotEncode, DIInstTokenizer
 from src.preprocess import DIProxy, DIPure, DIStmts
@@ -62,13 +62,14 @@ def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen):
     return corpus
 
 
-def load_cbow_data_end(db, vocab_args, args: BinArgs, window):
+def load_cbow_data_end(db, vocab_args, args: BinArgs, window, ss):
     # TODO: cache into db
     vocab = load_vocab(db, vocab_args)
     corpus = load_corpus(db, args, vocab)
-    data = CBowDataEnd(window, vocab, corpus)
-    data.build()
-    return data
+    # data = CBowDataEnd(window, vocab, corpus)
+    dataset_maker = CBowDatasetBuilder(vocab, corpus)
+    dataset = dataset_maker.build(window, ss)
+    return vocab, corpus, dataset
 
 
 def load_nmt_data_end(db, vocab_args, args1, args2, maxlen):

@@ -37,11 +37,34 @@ class NMTInspiredDataset(Dataset):
         # return (lx, rx), y
         return self.data[idx], self.label[idx]
 
-    def get_x(self):
-        return self.data
 
-    def get_y(self):
-        return self.label
+class UnSupervisedDataset(Dataset):
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+
+class SupervisedDataset(Dataset):
+    def __init__(self, data, label):
+        self.data = data
+        self.label = label
+
+        # data should be consistant with label
+        if len(self.data) == len(self.label):
+            raise ValueError(f'Inconsistant data and label! '
+                             f'The length of data is {len(self.data)}, while '
+                             f'the length of lable is {len(self.label)}')
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.data[index], self.label[index]
 
 
 def get_data_loaders(data, label, n_batch):

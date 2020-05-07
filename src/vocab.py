@@ -76,9 +76,7 @@ class AsmVocab:
     def onehot_encode(self, insts):
         """ Convert insts in tokens to insts in indexes """
         if type(insts) is str:
-            if insts in self.tkn2idx:
-                return self.tkn2idx[insts]
-            return None
+            return self.tkn2idx.get(insts)
 
         idx_insts = []
         for inst in insts:
@@ -87,10 +85,21 @@ class AsmVocab:
                 idx_insts.append(encoding)
         return idx_insts
 
+    def word_freq_ratio(self):
+        word_ssr = np.array(self.idx2frq)
+        return word_ssr / word_ssr.sum()
+
+    def sub_sample_ratio(self, ss):
+        word_ssr = self.word_freq_ratio()
+        word_ssr[0] = 1
+        word_ssr = np.sqrt(ss / word_ssr) + ss / word_ssr
+        word_ssr = np.clip(word_ssr, 0, 1)
+        word_ssr[0] = 0
+        return word_ssr
+
 
 def compute_word_freq_ratio(vocab):
-    word_ssr = np.array(vocab.idx2frq)
-    return word_ssr / word_ssr.sum()    
+    return vocab.word_freq_ratio()
 
 
 def compute_sub_sample_ratio(wf, ss):
