@@ -29,7 +29,8 @@ def load_vocab(db, args: BinArgs):
 def load_corpus(db, args: BinArgs, vocab):
     progs = load_progs_jointly(db, args)
     pp = DIProxy([
-        DIPure(), DITokenizer(), DIOneHotEncode(vocab), DIMergeProgs()
+        DIPure(),  DIFilterDoc(min_body_size=5),
+        DITokenizer(), DIOneHotEncode(vocab), DIMergeProgs()
     ])
     docs = pp.per(progs)
     corpus = Corpus()
