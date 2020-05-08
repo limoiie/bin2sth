@@ -5,7 +5,7 @@ from src.database.program_dao import BinArgs, load_progs_jointly
 from src.preprocess import DIOneHotEncode, DIInstTokenizer
 from src.preprocess import DIProxy, DIPure, DIStmts
 from src.preprocess import DITokenizer, DIMergeProgs
-from src.preprocesses.cbow_pp import CBowDatasetBuilder
+from src.preprocesses.cbow_pp import CBowDatasetBuilder, sync_corpus
 from src.preprocesses.nmt_inspired_pp import DIPadding, NMTInsDataEnd
 from src.vocab import AsmVocab
 
@@ -65,9 +65,26 @@ def load_cbow_data_end(db, vocab_args, args: BinArgs, window, ss):
     vocab = load_vocab(db, vocab_args)
     corpus = load_corpus(db, args, vocab)
     # data = CBowDataEnd(window, vocab, corpus)
-    dataset_maker = CBowDatasetBuilder(vocab, corpus)
-    dataset = dataset_maker.build(window, ss)
+    dataset_maker = CBowDatasetBuilder(vocab)
+    dataset = dataset_maker.build(corpus, window, ss)
     return vocab, corpus, dataset
+
+
+def load_cbow_data(db, vocab_args, train_args, query_args, window, ss):
+    """
+    Load cbow-related data which is used for training and evaluation.
+    """
+    vocab = load_vocab(db, vocab_args)
+    train_corpus = load_corpus(db, train_args, vocab)
+    query_corpus = load_corpus(db, query_args, vocab)
+
+    # sync two corpus for the conviency of evaluation
+    train_corpus, query_corpus = sync_corpus(train_corpus, query_corpus)
+
+    dataset_maker = CBowDatasetBuilder(vocab)
+    train_ds = dataset_maker.build(train_corpus, window, ss)
+    query_ds = dataset_maker.build(query_corpus, window, ss)
+    return vocab, train_corpus, query_corpus, train_ds, query_ds
 
 
 def load_nmt_data_end(db, vocab_args, args1, args2, maxlen):

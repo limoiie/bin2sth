@@ -1,4 +1,5 @@
 import random
+from itertools import filterfalse
 
 import numpy as np
 
@@ -10,21 +11,23 @@ from src.vocab import AsmVocab
 
 class CBowDatasetBuilder:
 
-    def __init__(self, vocab: AsmVocab, corpus: Corpus):
+    def __init__(self, vocab: AsmVocab):
         self.vocab = vocab
-        self.corpus = corpus
         self.data = []
 
-    def build(self, window, ss=None):
+    def build(self, corpus, window, ss=None):
         self.data = []
         # encode in one-hot if not
-        if not is_collection_of(self.corpus.idx2ins, [int]):
-            self.corpus.idx2ins = self.vocab.onehot_encode(self.corpus.idx2ins)
+        if not _is_collection_of(corpus.idx2ins, [int]):
+            corpus.idx2ins = self.vocab.onehot_encode(corpus.idx2ins)
 
         # convert each func into a sequence of training data
-        for func_id, stmts in enumerate(self.corpus.idx2ins):
-            for word, context in make_one_doc(stmts, window):
-                self.data.append((func_id, word, np.array(context)))
+        for func_id, stmts in enumerate(corpus.idx2ins):
+            per_doc = []
+            for word, context in _make_one_doc(stmts, window):
+                per_doc.append((func_id, word, context))
+            if per_doc:
+                self.data.append(per_doc)
 
         # sub-sample tokens if need
         if ss is not None:
@@ -38,10 +41,39 @@ class CBowDatasetBuilder:
         if ws is not None:
             def f(w):  # w is of (fun_id, center_word, ctx_words)
                 return random.random() < ws[w[1]]
-            self.data = list(filter(f, self.data))
+
+            def p(doc):
+                if len(doc) < 10:
+                    return doc
+                return list(filter(f, doc))
+
+            self.data = list(filter(None, map(p, self.data)))
 
 
-def make_one_doc(insts, window):
+def sync_corpus(train_corpus: Corpus, query_corpus: Corpus):
+    """
+    Sync two corpus into a consistant state, where they have the same
+    funcs and the same index identifies the same func
+    """
+    idx2doc = list(set(train_corpus.idx2doc) & set(query_corpus.idx2doc))
+    n_docs = len(idx2doc)
+
+    def sync(corpus):
+        idx2ins = []
+        doc2idx = {}
+        for i, doc in enumerate(idx2doc):
+            idx2ins.append(corpus.idx2ins[i])
+            doc2idx[doc] = i
+        corpus.idx2doc = idx2doc
+        corpus.idx2ins = idx2ins
+        corpus.doc2idx = doc2idx
+        corpus.n_docs = n_docs
+        return corpus
+
+    return sync(train_corpus), sync(query_corpus)
+
+
+def _make_one_doc(insts, window):
     n_insts = len(insts)
     for i, inst in enumerate(insts):
         prev_inst = insts[i - 1][:window] if i > 0 else []
@@ -54,7 +86,7 @@ def make_one_doc(insts, window):
             yield word, context
 
 
-def is_collection_of(m, cls, early_break=True):
+def _is_collection_of(m, cls, early_break=True):
     """
     Is :param m a collection of instances of :param cls
     :param m: the collection
@@ -66,5 +98,5 @@ def is_collection_of(m, cls, early_break=True):
         return True
     if typ in (list, tuple, set):
         for i in m:
-            return is_collection_of(i, cls, early_break)
+            return _is_collection_of(i, cls, early_break)
     return False

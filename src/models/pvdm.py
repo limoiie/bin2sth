@@ -4,6 +4,9 @@ import numpy as np
 from logging import getLogger
 
 
+from src.models.model import UnSupervisedModule
+
+
 # noinspection PyArgumentList
 class WordEmbedding(torch.nn.Module):
     def __init__(self, vocab_size, embed_size, padding_idx=0, no_hdn=False):
@@ -84,7 +87,8 @@ class FuncEmbedding(torch.nn.Module):
 
 
 # noinspection PyArgumentList
-class CBowPVDM(torch.nn.Module):
+class CBowPVDM(UnSupervisedModule):
+
     logger = getLogger('CBowPVDM')
 
     def __init__(self, embedding, doc_embedding, vocab_size, n_negs, wr=None):
@@ -100,7 +104,8 @@ class CBowPVDM(torch.nn.Module):
             t = np.power(wr, 0.75)
             self.neg_samp_dist = torch.FloatTensor(t / t.sum())
 
-    def forward(self, fun, word, context):
+    def forward(self, input_batch):
+        fun, word, context = input_batch
         batch_size = word.size()[0]
         neg_words = self.__neg_sample(batch_size)
 
@@ -124,6 +129,9 @@ class CBowPVDM(torch.nn.Module):
         # loss = loss.log().sum(1).mean()
         # return loss, sam_vec.abs().mean()
         return loss
+
+    def interested_out(self):
+        return self.embedding, self.doc_embedding
 
     def __neg_sample(self, batch_size):
         if self.neg_samp_dist is not None:

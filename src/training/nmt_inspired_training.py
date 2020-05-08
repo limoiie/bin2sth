@@ -68,7 +68,7 @@ def do_training(cuda, data_args, db, rt):
     # Load a trained w2v model
     w2v = models.Word2Vec.load(embedding_weights)
     # this is used to map word in text into one-hot encoding
-    embeddings = make_embedding(data_end.vocab.tkn2idx, rt.n_emb, w2v)
+    embeddings = _make_embedding(data_end.vocab.tkn2idx, rt.n_emb, w2v)
     embeddings = embeddings.cuda(device=cuda)
 
     data = t.tensor(data_end.data, dtype=t.long, device=cuda)
@@ -89,6 +89,9 @@ def do_training(cuda, data_args, db, rt):
         }, device=cuda
     )
 
+    # attach the evaluator into different stages of trainer so that
+    # once the trainer finish something, the evaluator will be called
+    # and then its metrics will be computed and output
     attach_stages(trainer, evaluator, ds, ds_val, ds_test)
 
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'batch_loss')
@@ -98,13 +101,14 @@ def do_training(cuda, data_args, db, rt):
     trainer.run(ds, max_epochs=rt.epochs)
 
 
-def make_embedding(vocabulary, n_emb, model):
-    # This will be the embedding matrix
+def _make_embedding(vocabulary, n_emb, model):
+    """
+    Reconstruct embedding matrix by indexing the stored embedding
+    weights with the new vocabulary index
+    """
     embeddings = t.randn(len(vocabulary), n_emb, dtype=t.float32)
     embeddings[0] = 0  # So that the padding will be ignored
 
-    # Build the embedding matrix, please refer to the meeting slides for
-    # more detailed explanation
     for word, index in vocabulary.items():
         if word in model.wv:
             embeddings[index] = t.tensor(model.wv[word].copy(), dtype=t.float32)
