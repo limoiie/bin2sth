@@ -153,6 +153,7 @@ def _doc_eval_transform(output):
     y = torch.zeros_like(y_pred, dtype=torch.int32)
     y[doc_ids] = eyes
 
+    print('shape of y_pred: ', y_pred.shape)
     return y_pred.T, y.T
 
 
