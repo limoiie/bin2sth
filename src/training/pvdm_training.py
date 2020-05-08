@@ -96,9 +96,5 @@ def _collect_fn(batch):
             torch.tensor(ctx)), torch.tensor(labels)
 
 
-def normalize(m):
-    return m / m.norm(dim=1, keepdim=True)
-
-
 if __name__ == "__main__":
     fire.Fire(train)

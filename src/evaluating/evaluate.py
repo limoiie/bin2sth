@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import torch
 from sklearn.metrics import roc_curve, auc
 
-from src.training.pvdm_training import normalize
-
 
 def evaluate_auc(Y_test, pred):
     fpr, tpr, _ = roc_curve(Y_test, pred, pos_label=1)
@@ -41,6 +39,10 @@ def doc_eval_flatten_transform(output):
 
     y_pred = torch.matmul(true_embedding_w, pred_embedding_w.T)
     y = torch.zeros_like(y_pred, dtype=torch.int32)
-    y[doc_ids] = torch.eye(len(doc_ids), dtype=torch.int32)
+    y[doc_ids] = torch.eye(len(doc_ids), dtype=torch.int32, device=y.device)
 
     return y_pred.reshape(-1), y.reshape(-1)
+
+
+def normalize(m):
+    return m / m.norm(dim=1, keepdim=True)
