@@ -53,9 +53,7 @@ class WordEmbedding(torch.nn.Module):
         return torch.nn.Parameter(t, requires_grad=True)
 
     def __cuda_wrap(self, data):
-        v = torch.LongTensor(data)
-        return v.cuda(
-            self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
+        return data.to(self.idx2vec.weight.device)
 
 
 # noinspection PyArgumentList
@@ -81,9 +79,7 @@ class FuncEmbedding(torch.nn.Module):
         return torch.nn.Parameter(t, requires_grad=True)
 
     def __cuda_wrap(self, data):
-        v = torch.LongTensor(data)
-        return v.cuda(
-            self.idx2vec.weight.device) if self.idx2vec.weight.is_cuda else v
+        return data.to(self.idx2vec.weight.device)
 
 
 # noinspection PyArgumentList

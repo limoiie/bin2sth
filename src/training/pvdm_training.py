@@ -160,7 +160,7 @@ def _doc_eval_flatten_transform(output):
 
     y_pred = torch.matmul(true_embedding_w, pred_embedding_w.T)
     y = torch.zeros_like(y_pred, dtype=torch.int32)
-    y[doc_ids] = torch.eye(len(doc_ids), dtype=torch.int32)
+    y[doc_ids] = torch.eye(len(doc_ids), dtype=torch.int32, device=y.device)
 
     return y_pred.reshape(-1), y.reshape(-1)
 
