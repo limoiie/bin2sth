@@ -1,19 +1,15 @@
-from functools import reduce
-
 import fire
-import numpy as np
 import torch
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
 from ignite.engine import Events
-from ignite.metrics import RunningAverage
-from ignite.utils import convert_tensor
+from ignite.metrics import RunningAverage, TopKCategoricalAccuracy
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from src.database.database import get_database_client, load_cbow_data
-from src.engine import create_unsupervised_trainer, \
-    create_unsupervised_training_evaluator
+from src.training.create_unsupervised_engine import \
+    create_unsupervised_trainer, create_unsupervised_training_evaluator
 from src.evaluating.funcs_accuracy import Evaluation
 from src.models.pvdm import CBowPVDM, WordEmbedding, FuncEmbedding
 from src.training.pvdm_args import ModelArgs
@@ -113,7 +109,9 @@ def do_training2(cuda, data_args, db, rt):
     evaluator = create_unsupervised_training_evaluator(
         train_model, query_model, query_optim,
         metrics={
-            'auc': ROC_AUC(_doc_eval_transform)
+            'auc': ROC_AUC(_doc_eval_transform),
+            'topk-acc': TopKCategoricalAccuracy(
+                k=1, output_transform=_doc_eval_transform)
         }, device=cuda)
 
     @trainer.on(Events.EPOCH_COMPLETED)
@@ -121,9 +119,9 @@ def do_training2(cuda, data_args, db, rt):
         evaluator.run(query_ds)
         metrics = evaluator.state.metrics
         print("Evaluation Results f Epoch: {}  "
-              "Avg accuracy: {:.2f}"
+              "AUC area: {:.2f}, Top-1 accuracy: {:.2f}"
               .format(engine.state.epoch,
-                      metrics['auc']))
+                      metrics['auc'], metrics['topk-acc']))
 
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'batch_loss')
     pbar = ProgressBar()
