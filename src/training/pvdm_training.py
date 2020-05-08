@@ -35,10 +35,10 @@ def do_training(cuda, data_args, db, rt):
     vocab, train_corpus, query_corpus, train_ds, query_ds = \
         load_cbow_data(db, vocab_arg, train_corpus_arg, query_corpus_arg,
                        rt.window, rt.ss)
-    train_ds = DataLoader(train_ds, batch_size=rt.n_batch,
-                          collate_fn=_collect_fn)
-    query_ds = DataLoader(query_ds, batch_size=rt.n_batch,
-                          collate_fn=_collect_fn)
+    train_loader = DataLoader(train_ds, batch_size=rt.n_batch,
+                              collate_fn=_collect_fn)
+    query_loader = DataLoader(query_ds, batch_size=rt.n_batch,
+                              collate_fn=_collect_fn)
 
     embedding = WordEmbedding(vocab.size, rt.n_emb, no_hdn=rt.no_hdn)
 
@@ -68,9 +68,12 @@ def do_training(cuda, data_args, db, rt):
                 k=1, output_transform=doc_eval_transform)
         }, device=cuda)
 
+    train_ds.attach(trainer)  # re-sub-sample the dataset for each epoch
+    query_ds.attach(evaluator)  # re-subsample the dataset for each epoch
+
     @trainer.on(Events.EPOCH_COMPLETED)
     def eval_per_epoch(engine):
-        evaluator.run(query_ds)
+        evaluator.run(query_loader)
         metrics = evaluator.state.metrics
         print("Evaluation Results f Epoch: {}  "
               "AUC area: {:.2f}, Top-1 accuracy: {:.2f}"
@@ -81,7 +84,7 @@ def do_training(cuda, data_args, db, rt):
     pbar = ProgressBar()
     pbar.attach(trainer, ['batch_loss'])
 
-    trainer.run(train_ds, max_epochs=rt.epochs)
+    trainer.run(train_loader, max_epochs=rt.epochs)
 
 
 def _collect_fn(batch):

@@ -1,3 +1,4 @@
+from ignite.engine import Engine, Events
 from torch.utils.data import Dataset, DataLoader
 
 
@@ -28,6 +29,31 @@ class SupervisedDataset(Dataset):
 
     def __getitem__(self, index):
         return self.data[index], self.label[index]
+
+
+class ReloadableDataset(Dataset):
+    def __init__(self, dataset_maker):
+        self.data = dataset_maker()
+        self.dataset_maker = dataset_maker
+        self.valid = True  # do not remaker the first dataset
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    def attach(self, engine: Engine):
+        """Attach to the engin so that the reload can be automatically"""
+        @engine.on(Events.EPOCH_STARTED)
+        def fresh(_egine):
+            return self.fresh_data()
+
+    def fresh_data(self):
+        if self.valid:
+            self.valid = False  # use the first-maked dataset
+            return
+        self.data = self.dataset_maker()
 
 
 def get_data_loaders(data, label, n_batch):

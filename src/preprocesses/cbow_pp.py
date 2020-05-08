@@ -1,7 +1,7 @@
 import random
 
 from src.corpus import Corpus
-from src.dataset import UnSupervisedDataset
+from src.dataset import UnSupervisedDataset, ReloadableDataset
 from src.preprocesses.preprocess import unk_idx_list
 from src.vocab import AsmVocab
 
@@ -26,25 +26,32 @@ class CBowDatasetBuilder:
             if per_doc:
                 self.data.append(per_doc)
 
-        # sub-sample tokens if need
-        if ss is not None:
-            self.__sub_sample(ss)
+        maker = SubSampleDatasetMaker(
+            self.data, self.vocab.sub_sample_ratio(ss))
+        return ReloadableDataset(maker)
 
-        return UnSupervisedDataset(self.data)
 
-    def __sub_sample(self, ss_freq):
+class SubSampleDatasetMaker:
+    def __init__(self, data, ws):
+        self.data = data
+        self.ws = ws
+
+    def __call__(self):
+        return self.__sub_sample()
+
+    def __sub_sample(self):
         """sub sample tokens"""
-        ws = self.vocab.sub_sample_ratio(ss_freq)
-        if ws is not None:
-            def f(w):  # w is of (fun_id, center_word, ctx_words)
-                return random.random() < ws[w[1]]
+        if self.ws is not None:
+            def entry_filter(w):  # w is of (fun_id, center_word, ctx_words)
+                return random.random() < self.ws[w[1]]
 
             def p(doc):
-                if len(doc) < 10:
+                if len(doc) < 10:  # do not sub-sample the small function
                     return doc
-                return list(filter(f, doc))
+                return list(filter(entry_filter, doc))
 
-            self.data = list(filter(None, map(p, self.data)))
+            return list(filter(None, map(p, self.data)))
+        return self.data
 
 
 def sync_corpus(train_corpus: Corpus, query_corpus: Corpus):
