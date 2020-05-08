@@ -109,7 +109,7 @@ def do_training2(cuda, data_args, db, rt):
     evaluator = create_unsupervised_training_evaluator(
         train_model, query_model, query_optim,
         metrics={
-            'auc': ROC_AUC(_doc_eval_transform),
+            'auc': ROC_AUC(_doc_eval_flatten_transform),
             'topk-acc': TopKCategoricalAccuracy(
                 k=1, output_transform=_doc_eval_transform)
         }, device=cuda)
@@ -153,6 +153,11 @@ def _doc_eval_transform(output):
     y = torch.zeros_like(y_pred, dtype=torch.int32)
     y[doc_ids] = eyes
 
+    return y_pred.T, y.T
+
+
+def _doc_eval_flatten_transform(output):
+    y_pred, y = _doc_eval_transform(output)
     return y_pred.reshape(-1), y.reshape(-1)
 
 
