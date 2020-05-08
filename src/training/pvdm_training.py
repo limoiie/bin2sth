@@ -147,18 +147,21 @@ def _doc_eval_transform(output):
     true_embedding_w = base_doc_embedding.idx2vec.weight
     pred_embedding_w = doc_embedding(doc_ids)
 
-    eyes = torch.eye(len(doc_ids), dtype=torch.int32)
+    y_pred = torch.matmul(pred_embedding_w, true_embedding_w.T)
+    y = doc_ids
 
-    y_pred = torch.matmul(true_embedding_w, pred_embedding_w.T)
-    y = torch.zeros_like(y_pred, dtype=torch.int32)
-    y[doc_ids] = eyes
-
-    print('shape of y_pred: ', y_pred.shape)
-    return y_pred.T, y.T
+    return y_pred, y.T
 
 
 def _doc_eval_flatten_transform(output):
-    y_pred, y = _doc_eval_transform(output)
+    doc_ids, (_, base_doc_embedding), (_, doc_embedding) = output
+    true_embedding_w = base_doc_embedding.idx2vec.weight
+    pred_embedding_w = doc_embedding(doc_ids)
+
+    y_pred = torch.matmul(true_embedding_w, pred_embedding_w.T)
+    y = torch.zeros_like(y_pred, dtype=torch.int32)
+    y[doc_ids] = torch.eye(len(doc_ids), dtype=torch.int32)
+
     return y_pred.reshape(-1), y.reshape(-1)
 
 
