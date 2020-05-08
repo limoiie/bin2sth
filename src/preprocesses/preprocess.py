@@ -96,6 +96,16 @@ class DIStmts(DocIter):
             yield stmts
 
 
+class DIFilterDoc(DocIter):
+    def __init__(self, min_body_size):
+        self.min_body_size = min_body_size
+
+    def __call__(self, prog):
+        for label, stmts in prog:
+            if len(stmts) >= self.min_body_size:
+                yield label, stmts
+
+
 class DIMergeProgs(DocIter):
     """ 
     Unite the list of progs into a list of docs, where each prog 

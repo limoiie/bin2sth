@@ -1,11 +1,8 @@
 import random
-from itertools import filterfalse
-
-import numpy as np
 
 from src.corpus import Corpus
 from src.dataset import UnSupervisedDataset
-from src.preprocess import unk_idx_list
+from src.preprocesses.preprocess import unk_idx_list
 from src.vocab import AsmVocab
 
 

@@ -1,5 +1,5 @@
 from src.corpus import Corpus
-from src.preprocess import DocIter
+from src.preprocesses.preprocess import DocIter
 
 
 class DIPadding(DocIter):

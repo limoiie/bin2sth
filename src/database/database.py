@@ -2,9 +2,10 @@ from pymongo import MongoClient
 
 from src.corpus import Corpus
 from src.database.program_dao import BinArgs, load_progs_jointly
-from src.preprocess import DIOneHotEncode, DIInstTokenizer
-from src.preprocess import DIProxy, DIPure, DIStmts
-from src.preprocess import DITokenizer, DIMergeProgs
+from src.preprocesses.preprocess import DIOneHotEncode, DIInstTokenizer, \
+    DIFilterDoc
+from src.preprocesses.preprocess import DIProxy, DIPure, DIStmts
+from src.preprocesses.preprocess import DITokenizer, DIMergeProgs
 from src.preprocesses.cbow_pp import CBowDatasetBuilder, sync_corpus
 from src.preprocesses.nmt_inspired_pp import DIPadding, NMTInsDataEnd
 from src.vocab import AsmVocab
@@ -52,7 +53,8 @@ def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen):
     """
     progs = load_progs_jointly(db, args)
     pp = DIProxy([
-        DIPure(), DIOneHotEncode(vocab), DIPadding(maxlen, 0), DIMergeProgs()
+        DIPure(), DIFilterDoc(min_body_size=5),
+        DIOneHotEncode(vocab), DIPadding(maxlen, 0), DIMergeProgs()
     ])
     docs = pp.per(progs)
     corpus = Corpus()
