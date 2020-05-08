@@ -144,8 +144,8 @@ def _collect_fn(batch):
 
 def _doc_eval_transform(output):
     doc_ids, (_, base_doc_embedding), (_, doc_embedding) = output
-    true_embedding_w = base_doc_embedding.idx2vec.weight
-    pred_embedding_w = doc_embedding(doc_ids)
+    true_embedding_w = normalize(base_doc_embedding.idx2vec.weight)
+    pred_embedding_w = normalize(doc_embedding(doc_ids))
 
     y_pred = torch.matmul(pred_embedding_w, true_embedding_w.T)
     y = doc_ids
@@ -155,8 +155,8 @@ def _doc_eval_transform(output):
 
 def _doc_eval_flatten_transform(output):
     doc_ids, (_, base_doc_embedding), (_, doc_embedding) = output
-    true_embedding_w = base_doc_embedding.idx2vec.weight
-    pred_embedding_w = doc_embedding(doc_ids)
+    true_embedding_w = normalize(base_doc_embedding.idx2vec.weight)
+    pred_embedding_w = normalize(doc_embedding(doc_ids))
 
     y_pred = torch.matmul(true_embedding_w, pred_embedding_w.T)
     y = torch.zeros_like(y_pred, dtype=torch.int32)
