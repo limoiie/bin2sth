@@ -65,9 +65,10 @@ def create_unsupervised_training_evaluator(
 
 
 def _prepare_batch2(batch, device, non_blocking):
-    # todo: call ignite.utils.convert_tensor
     (x1, x2), y = batch
-    return x1, x2, y
+    return convert_tensor(x1, device=device, non_blocking=non_blocking), \
+        convert_tensor(x2, device=device, non_blocking=non_blocking), \
+        convert_tensor(y, device=device, non_blocking=non_blocking)
 
 
 def create_supervised_siamese_trainer(
