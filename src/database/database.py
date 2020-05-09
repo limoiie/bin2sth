@@ -50,7 +50,8 @@ def load_inst_vocab(db, args: BinArgs):
     return vocab
 
 
-def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen):
+def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen, 
+                             min_body_size=5):
     """
     Load corpus where the whole instruction is taken as the word-unit.
     Besides, each function body will be padding with `0', which is
@@ -59,7 +60,7 @@ def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen):
     """
     progs = load_progs_jointly(db, args)
     pp = DIProxy([
-        DIPure(), DIFilterDoc(min_body_size=5),
+        DIPure(), DIFilterDoc(min_body_size=min_body_size),
         DIOneHotEncode(vocab), DIPadding(maxlen, 0), DIMergeProgs()
     ])
     docs = pp.per(progs)
@@ -87,8 +88,9 @@ def load_cbow_data(db, vocab_args, train_args, query_args, window, ss):
 
 def load_nmt_data_end(db, vocab_args, args1, args2, maxlen):
     vocab = load_inst_vocab(db, vocab_args)
-    corpus1 = load_corpus_with_padding(db, args1, vocab, maxlen)
-    corpus2 = load_corpus_with_padding(db, args2, vocab, maxlen)
+    corpus1 = load_corpus_with_padding(db, args1, vocab, maxlen, 0)
+    corpus2 = load_corpus_with_padding(db, args2, vocab, maxlen, 0)
+    print(f'{corpus1.n_docs}, {corpus2.n_docs}')
     data = NMTInsDataEnd(vocab, corpus1, corpus2)
     data.build()
     return data

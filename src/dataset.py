@@ -19,7 +19,7 @@ class SupervisedDataset(Dataset):
         self.label = label
 
         # data should be consistant with label
-        if len(self.data) == len(self.label):
+        if len(self.data) != len(self.label):
             raise ValueError(f'Inconsistant data and label! '
                              f'The length of data is {len(self.data)}, while '
                              f'the length of lable is {len(self.label)}')
