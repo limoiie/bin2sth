@@ -32,9 +32,9 @@ class SupervisedDataset(Dataset):
 
 
 class ReloadableDataset(Dataset):
-    def __init__(self, dataset_maker):
-        self.data = dataset_maker()
-        self.dataset_maker = dataset_maker
+    def __init__(self, data_maker):
+        self.data = data_maker()
+        self.data_maker = data_maker
         self.valid = True  # do not remaker the first dataset
 
     def __len__(self):
@@ -44,7 +44,7 @@ class ReloadableDataset(Dataset):
         return self.data[index]
 
     def attach(self, engine: Engine):
-        """Attach to the engin so that the reload can be automatically"""
+        """Attach to the engine so that the reload can be automatic"""
         @engine.on(Events.EPOCH_STARTED)
         def fresh(_egine):
             return self.fresh_data()
@@ -53,7 +53,7 @@ class ReloadableDataset(Dataset):
         if self.valid:
             self.valid = False  # use the first-maked dataset
             return
-        self.data = self.dataset_maker()
+        self.data = self.data_maker()
 
 
 def get_data_loaders(data, label, n_batch):

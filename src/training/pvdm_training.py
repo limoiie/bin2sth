@@ -2,7 +2,6 @@ import fire
 import torch
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
-from ignite.engine import Events
 from ignite.metrics import RunningAverage, TopKCategoricalAccuracy
 from torch.optim import Adam
 from torch.utils.data import DataLoader
@@ -15,6 +14,7 @@ from src.training.create_unsupervised_engine import \
     create_unsupervised_trainer, create_unsupervised_training_evaluator
 from src.training.pvdm_args import ModelArgs
 from src.training.pvdm_args import parse_eval_file
+from src.training.training import attach_unsupervised_evaluator
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
@@ -71,14 +71,7 @@ def do_training(cuda, data_args, db, rt):
     train_ds.attach(trainer)  # re-sub-sample the dataset for each epoch
     query_ds.attach(evaluator)  # re-subsample the dataset for each epoch
 
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def eval_per_epoch(engine):
-        evaluator.run(query_loader)
-        metrics = evaluator.state.metrics
-        print("Evaluation Results f Epoch: {}  "
-              "AUC area: {:.2f}, Top-1 accuracy: {:.2f}"
-              .format(engine.state.epoch,
-                      metrics['auc'], metrics['topk-acc']))
+    attach_unsupervised_evaluator(trainer, evaluator, query_loader)
 
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'batch_loss')
     pbar = ProgressBar()

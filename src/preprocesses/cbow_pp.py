@@ -1,7 +1,7 @@
 import random
 
 from src.corpus import Corpus
-from src.dataset import UnSupervisedDataset, ReloadableDataset
+from src.dataset import ReloadableDataset
 from src.preprocesses.preprocess import unk_idx_list
 from src.vocab import AsmVocab
 
@@ -26,12 +26,12 @@ class CBowDatasetBuilder:
             if per_doc:
                 self.data.append(per_doc)
 
-        maker = SubSampleDatasetMaker(
+        maker = SubSampleDataMaker(
             self.data, self.vocab.sub_sample_ratio(ss))
         return ReloadableDataset(maker)
 
 
-class SubSampleDatasetMaker:
+class SubSampleDataMaker:
     def __init__(self, data, ws):
         self.data = data
         self.ws = ws
