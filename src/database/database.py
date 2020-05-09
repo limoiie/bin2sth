@@ -90,7 +90,6 @@ def load_nmt_data_end(db, vocab_args, args1, args2, maxlen):
     vocab = load_inst_vocab(db, vocab_args)
     corpus1 = load_corpus_with_padding(db, args1, vocab, maxlen, 0)
     corpus2 = load_corpus_with_padding(db, args2, vocab, maxlen, 0)
-    print(f'{corpus1.n_docs}, {corpus2.n_docs}')
     data = NMTInsDataEnd(vocab, corpus1, corpus2)
     data.build()
     return data

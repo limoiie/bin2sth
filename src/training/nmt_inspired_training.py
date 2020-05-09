@@ -21,11 +21,16 @@ from ignite.contrib.metrics import ROC_AUC
 from ignite.engine import create_supervised_trainer, \
     create_supervised_evaluator
 from ignite.metrics import Loss, RunningAverage
+from ignite.utils import convert_tensor
 from torch.optim import Adam
 
 from src.database.database import get_database_client, load_nmt_data_end
 from src.dataset import get_data_loaders
+from src.models.metrics.siamese_loss import SiameseLoss
+from src.models.metrics.siamese_metric import SiameseMetric
 from src.models.nmt_inspired import NMTInspiredModel
+from src.training.build_engine import create_supervised_siamese_trainer, \
+    create_supervised_siamese_evaluator
 from src.training.pvdm_args import parse_eval_file, ModelArgs
 from src.training.training import attach_stages
 from src.utils.logger import get_logger
@@ -69,23 +74,26 @@ def do_training(cuda, data_args, db, rt):
     w2v = models.Word2Vec.load(embedding_weights)
     # this is used to map word in text into one-hot encoding
     embeddings = _make_embedding(data_end.vocab.tkn2idx, rt.n_emb, w2v)
-    embeddings = embeddings.cuda(device=cuda)
+    embeddings = embeddings.cuda(device=cuda) if cuda else embeddings
 
-    data = t.tensor(data_end.data, dtype=t.long, device=cuda)
-    label = t.tensor(data_end.label, dtype=t.float32, device=cuda)
+    # l_data = t.tensor(data_end.data[0], dtype=t.long, device=cuda)
+    # r_data = t.tensor(data_end.data[1], dtype=t.long, device=cuda)
+    # data = t.tensor(data_end.data, dtype=t.long, device=cuda)
+    data, label = data_end.data, t.tensor(data_end.label, dtype=t.float32)
 
     model = NMTInspiredModel(data_end.vocab.size, rt.n_emb,
                              embeddings, max_seq_length, n_lstm_hidden)
     optim = Adam(model.parameters(), lr=rt.init_lr)
-    loss = t.nn.MSELoss()
+    loss_fn = SiameseLoss(sim_fn, t.nn.MSELoss())
 
     ds, ds_val, ds_test = get_data_loaders(data, label, rt.n_batch)
 
-    trainer = create_supervised_trainer(model, optim, loss, device=cuda)
-    evaluator = create_supervised_evaluator(
+    trainer = create_supervised_siamese_trainer(
+        model, optim, loss_fn, device=cuda)
+    evaluator = create_supervised_siamese_evaluator(
         model, metrics={
-            'auc': ROC_AUC(),
-            'mse': Loss(loss)
+            'auc': SiameseMetric(sim_fn, ROC_AUC()),
+            'mse': Loss(loss_fn)
         }, device=cuda
     )
 
@@ -99,6 +107,18 @@ def do_training(cuda, data_args, db, rt):
     pbar.attach(trainer, ['batch_loss'])
 
     trainer.run(ds, max_epochs=rt.epochs)
+
+
+def sim_fn(o1, o2):
+    return t.exp(-t.sum(t.abs(o1 - o2), dim=1))
+
+# def _prepare_batch(batch, device=None, non_blocking=False):
+#     """Prepare batch for training: pass to a device with options.
+#
+#     """
+#     x, y = batch
+#     return (convert_tensor(x, device=device, non_blocking=non_blocking),
+#             convert_tensor(y, device=device, non_blocking=non_blocking))
 
 
 def _make_embedding(vocabulary, n_emb, model):

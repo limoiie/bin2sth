@@ -66,7 +66,7 @@ def create_unsupervised_training_evaluator(
 
 def _prepare_batch2(batch, device, non_blocking):
     # todo: call ignite.utils.convert_tensor
-    x1, x2, y = batch
+    (x1, x2), y = batch
     return x1, x2, y
 
 
@@ -83,7 +83,7 @@ def create_supervised_siamese_trainer(
         x1, x2, y = prepare_batch(
             batch, device=device, non_blocking=non_blocking)
         o1, o2 = model(x1), model(x2)
-        loss = loss_fn(o1, o2, y)
+        loss = loss_fn((o1, o2), y)
         loss.backward()
         optimizer.step()
 
@@ -96,7 +96,7 @@ def create_supervised_siamese_evaluator(
         model, metrics=None,
         device=None, non_blocking=False,
         prepare_batch=_prepare_batch2,
-        output_transform=lambda x, y, o: (o[0], o[1], y)):
+        output_transform=lambda x, y, o: (o, y)):
     metrics = metrics or {}
 
     if device:
@@ -113,9 +113,10 @@ def create_supervised_siamese_evaluator(
     engine = Engine(_inference)
 
     for name, metric in metrics.items():
-        assert isinstance(metric, SiameseMetric), \
-            'each metric in :param metrics should be an instance of ' \
-            ':class SiameseMetric'
+        # assert isinstance(metric, SiameseMetric), \
+        #     'each metric in :param metrics should be an instance of ' \
+        #     ':class SiameseMetric'
+        # or the metric could be a siamese-style loss wrapped with a Loss
         metric.attach(engine, name)
 
     return engine

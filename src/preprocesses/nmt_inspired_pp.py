@@ -1,3 +1,5 @@
+import torch
+
 from src.corpus import Corpus
 from src.preprocesses.preprocess import DocIter
 
@@ -44,5 +46,6 @@ class NMTInsDataEnd:
         for i, (doc1, doc2) in enumerate(
                 zip(self.corpus1.idx2doc, self.corpus2.idx2doc)):
             self.data.append([
-                self.corpus1.idx2ins[i], self.corpus2.idx2ins[i]])
+                torch.tensor(self.corpus1.idx2ins[i]),
+                torch.tensor(self.corpus2.idx2ins[i])])
             self.label.append(1 if doc1 == doc2 else 0)

@@ -34,16 +34,12 @@ class NMTInspiredModel(t.nn.Module):
         self.shared_lstm = t.nn.LSTM(
             n_emb, n_lstm_hidden, batch_first=True, num_layers=2)
 
-        # batch * unites_2nd_layer -> batch * 1
-        self.decider = t.nn.Linear(n_lstm_hidden, 1)
-
     def forward(self, batch_input):
-        # -> batch * 2 * seq
+        # -> batch * seq
         encoded = self.encoder(batch_input)
-        # -> batch * 2 * seq * emb
-        l_output, _ = self.shared_lstm(encoded[:, 0])
-        r_output, _ = self.shared_lstm(encoded[:, 1])
-        # -> batch * seq * units_2nd_layer
-        dis = t.exp(-t.sum(t.abs(l_output - r_output), dim=1, keepdim=False))
+        # -> batch * seq * emb
+        _output, (h_n, _c_n) = self.shared_lstm(encoded)
+        # -> h_n: n_layers * batch * units_2nd_layer
+        # dis = t.exp(-t.sum(t.abs(l_output - r_output), dim=1, keepdim=False))
         # -> batch * units_2nd_layer
-        return self.decider(dis).squeeze()
+        return h_n.sum(dim=0)
