@@ -3,8 +3,6 @@ import torch as t
 from ignite.engine import Engine
 from ignite.utils import convert_tensor
 
-from src.models.metrics.siamese_metric import SiameseMetric
-
 
 def _prepare_batch(batch, device=None, non_blocking=False):
     x, l = batch

@@ -40,6 +40,4 @@ class NMTInspiredModel(t.nn.Module):
         # -> batch * seq * emb
         _output, (h_n, _c_n) = self.shared_lstm(encoded)
         # -> h_n: n_layers * batch * units_2nd_layer
-        # dis = t.exp(-t.sum(t.abs(l_output - r_output), dim=1, keepdim=False))
-        # -> batch * units_2nd_layer
-        return h_n.sum(dim=0)
+        return h_n.sum(dim=0)  # -> batch * units_2nd_layer

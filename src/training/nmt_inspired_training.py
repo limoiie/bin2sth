@@ -18,10 +18,7 @@ import torch as t
 from gensim import models
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
-from ignite.engine import create_supervised_trainer, \
-    create_supervised_evaluator
 from ignite.metrics import Loss, RunningAverage
-from ignite.utils import convert_tensor
 from torch.optim import Adam
 
 from src.database.database import get_database_client, load_nmt_data_end
@@ -110,15 +107,11 @@ def do_training(cuda, data_args, db, rt):
 
 
 def sim_fn(o1, o2):
+    """
+    The distance function used by nmt-inspired to compute the distance
+    between two embeddings
+    """
     return t.exp(-t.sum(t.abs(o1 - o2), dim=1))
-
-# def _prepare_batch(batch, device=None, non_blocking=False):
-#     """Prepare batch for training: pass to a device with options.
-#
-#     """
-#     x, y = batch
-#     return (convert_tensor(x, device=device, non_blocking=non_blocking),
-#             convert_tensor(y, device=device, non_blocking=non_blocking))
 
 
 def _make_embedding(vocabulary, n_emb, model):
