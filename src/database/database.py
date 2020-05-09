@@ -17,6 +17,7 @@ def get_database_client():
 
 
 def load_vocab(db, args: BinArgs):
+    """Load the vocab where the word unit is operands/operators"""
     # TODO: cache into db
     progs = load_progs_jointly(db, args)
     pp = DIProxy([DIPure(), DITokenizer(), DIStmts(), DIMergeProgs()])
@@ -39,6 +40,7 @@ def load_corpus(db, args: BinArgs, vocab):
 
 
 def load_inst_vocab(db, args: BinArgs):
+    """Load the vocab where the word unit is instruction"""
     # TODO: cache into db
     progs = load_progs_jointly(db, args)
     pp = DIProxy([DIPure(), DIInstTokenizer(), DIStmts(), DIMergeProgs()])
@@ -50,7 +52,10 @@ def load_inst_vocab(db, args: BinArgs):
 
 def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen):
     """
-    This corpus takes the whole instruction as a word
+    Load corpus where the whole instruction is taken as the word-unit.
+    Besides, each function body will be padding with `0', which is
+    the index of `<unk>' tags, to form a unified instruction sequence
+    (body) size.
     """
     progs = load_progs_jointly(db, args)
     pp = DIProxy([
@@ -61,16 +66,6 @@ def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen):
     corpus = Corpus()
     corpus.build(docs)
     return corpus
-
-
-def load_cbow_data_end(db, vocab_args, args: BinArgs, window, ss):
-    # TODO: cache into db
-    vocab = load_vocab(db, vocab_args)
-    corpus = load_corpus(db, args, vocab)
-    # data = CBowDataEnd(window, vocab, corpus)
-    dataset_maker = CBowDatasetBuilder(vocab)
-    dataset = dataset_maker.build(corpus, window, ss)
-    return vocab, corpus, dataset
 
 
 def load_cbow_data(db, vocab_args, train_args, query_args, window, ss):

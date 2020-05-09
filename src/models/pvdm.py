@@ -143,3 +143,40 @@ class CBowPVDM(UnSupervisedModule):
         # NOTE: I modify [0, vocab_size-1] to [1, vocab_size]
         return torch.FloatTensor(batch_size, self.n_negs) \
             .uniform_(1, self.vocab_size).long()
+
+
+def doc_eval_transform(output):
+    """
+    Transform the output of :class CBowPVDM to the form that
+    could be accepted the :class ignite.metrics.TopKCategoricalAccuracy
+    """
+    doc_ids, (_, base_doc_embedding), (_, doc_embedding) = output
+    true_embedding_w = normalize(base_doc_embedding.idx2vec.weight)
+    pred_embedding_w = normalize(doc_embedding(doc_ids))
+
+    y_pred = torch.matmul(pred_embedding_w, true_embedding_w.T)
+    y = doc_ids
+
+    return y_pred, y.T
+
+
+def doc_eval_flatten_transform(output):
+    """
+    Transform the output of :class CBowPVDM to the form that
+    could be accepted by the subclasses of :class ignite.mertics.Mertic
+    that are based on pair-wise losses. The finall output will be flatten
+    into 1-dimension
+    """
+    doc_ids, (_, base_doc_embedding), (_, doc_embedding) = output
+    true_embedding_w = normalize(base_doc_embedding.idx2vec.weight)
+    pred_embedding_w = normalize(doc_embedding(doc_ids))
+
+    y_pred = torch.matmul(true_embedding_w, pred_embedding_w.T)
+    y = torch.zeros_like(y_pred, dtype=torch.int32)
+    y[doc_ids] = torch.eye(len(doc_ids), dtype=torch.int32, device=y.device)
+
+    return y_pred.reshape(-1), y.reshape(-1)
+
+
+def normalize(m):
+    return m / m.norm(dim=1, keepdim=True)
