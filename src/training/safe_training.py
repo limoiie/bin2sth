@@ -4,13 +4,14 @@ import torch.nn.functional as F
 from gensim import models
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
-from ignite.metrics import RunningAverage
+from ignite.metrics import RunningAverage, Loss
 from keras.optimizers import Adam
 
 from src.database.database import get_database_client, load_nmt_data_end
 from src.dataset import get_data_loaders
 from src.models import safe
-from src.models.metrics.atten_cosine_mse_loss import AttenCosineMSELoss
+from src.models.metrics.atten_cosine_mse_loss import AttenPenaltyLoss
+from src.models.metrics.siamese_loss import SiameseLoss
 from src.models.metrics.siamese_metric import SiameseMetric
 from src.models.safe import SAFE
 from src.training.build_engine import create_supervised_siamese_trainer, \
@@ -55,7 +56,8 @@ def do_training(cuda, data_args, db, rt):
     model = SAFE(config, embeddings)
 
     train_optim = Adam(model.parameters(), lr=rt.init_lr)
-    loss_fn = AttenCosineMSELoss()
+    core_loss_fn = SiameseLoss(F.cosine_similarity, t.nn.MSELoss('sum'))
+    loss_fn = AttenPenaltyLoss(core_loss_fn)
 
     ds, ds_val, ds_test = get_data_loaders(data, label, rt.n_batch)
 
@@ -64,8 +66,9 @@ def do_training(cuda, data_args, db, rt):
     evaluator = create_supervised_siamese_evaluator(
         model, metrics={
             'auc': SiameseMetric(F.cosine_similarity, ROC_AUC()),
+            'mse': Loss(core_loss_fn)
         }, device=cuda,
-        output_transform=output_transform_for_safe
+        output_transform=out_transform_for_safe
     )
 
     attach_stages(trainer, evaluator, ds, ds_val, ds_test)
@@ -77,12 +80,12 @@ def do_training(cuda, data_args, db, rt):
     trainer.run(ds, max_epochs=rt.epochs)
 
 
-def output_transform_for_safe(o1, o2, y):
+def out_transform_for_safe(o, y):
     """
     Unwrap each output of :class SAFE under the siamese architecture so
     that it is acceptable for siamese metric
     """
-    (o1, _), (o2, _), y = o1, o2, y
+    (o1, _), (o2, _) = o
     return o1, o2, y
 
 

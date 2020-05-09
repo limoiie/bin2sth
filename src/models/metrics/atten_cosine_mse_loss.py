@@ -1,15 +1,13 @@
 import torch as t
 
-from src.models.metrics.cosine_mse_loss import CosineMSELoss
 
-
-class AttenCosineMSELoss(t.nn.Module):
+class AttenPenaltyLoss(t.nn.Module):
     r"""
-    Compute the mix-loss by combining the mse loss on cosine similarity
-    and the penalty of attention metric.
+    Compute the mix-loss by combining the given loss and the penalty
+    of attention metric.
 
     ..math
-        L(o1, o2, y, A)_F = \sum_{i=0}^n (cosine_sim(o1, o2) - y)^2 +
+        L(o1, o2, y, A)_F = \sum_{i=0}^n (loss_fn(o1, o2, y)) +
           \alpha * \vert A A.T \vert _F
 
     This is first introduced by Z. Lin, et al 2017 and is adopted by
@@ -25,11 +23,11 @@ class AttenCosineMSELoss(t.nn.Module):
         }
     """
 
-    def __init__(self, alpha=1.0, reduction='mean'):
+    def __init__(self, loss_fn, alpha=1.0, reduction='mean'):
         super().__init__()
         self.reduction = reduction
         self.alpha = alpha
-        self.loss_fn = CosineMSELoss('sum')
+        self.loss_fn = loss_fn
 
     def forward(self, o1, o2, y):
         """
