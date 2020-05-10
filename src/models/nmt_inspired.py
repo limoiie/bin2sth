@@ -1,5 +1,5 @@
 """
-This model is slightly modified from the repository at the next link:
+This model is slightly modified from the repository at the following link:
 https://github.com/nmt4binaries/nmt4binaries.github.io/tree/master/download
 which is the official implement of zuo2019neural.
 @inproceedings{zuo2019neural,
