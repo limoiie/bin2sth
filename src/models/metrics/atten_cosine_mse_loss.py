@@ -23,19 +23,18 @@ class AttenPenaltyLoss(t.nn.Module):
         }
     """
 
-    def __init__(self, loss_fn, alpha=1.0, reduction='mean'):
+    def __init__(self, loss_fn, alpha=1.0):
         super().__init__()
-        self.reduction = reduction
         self.alpha = alpha
         self.loss_fn = loss_fn
 
-    def forward(self, o1, o2, y):
+    def forward(self, o, y):
         """
         NOTE!!: This depends on the model to yield the pred and the attention
           matrix at the same time as the ouput. Consider to reconstruct this
         """
-        (o1, A), (o2, _) = o1, o2
-        base_loss = self.loss_fn(o1, o2, y)
+        (o1, A), (o2, _) = o
+        base_loss = self.loss_fn((o1, o2), y)
         I = t.eye(A.shape[0], dtype=A.dtype, device=A.device)
         A_loss = t.norm(t.matmul(A, A.T) - I)
         return base_loss + A_loss * self.alpha

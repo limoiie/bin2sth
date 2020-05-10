@@ -10,9 +10,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
+from src.models.model import layer_trainable
+
 
 class SAFE(nn.Module):
-    def __init__(self, config, embedding):
+    def __init__(self, config, vocab_size, embedding):
         super(SAFE, self).__init__()
 
         self.conf = config
@@ -20,7 +22,10 @@ class SAFE(nn.Module):
         # self.instructions_embeddings = torch.nn.Embedding(
         #     self.conf.num_embeddings, self.conf.embedding_size
         # )
-        self.instructions_embeddings = embedding
+        self.instructions_embeddings = torch.nn.Embedding(
+            vocab_size, self.conf.embedding_size, 
+            _weight=embedding.clone().detach())
+        layer_trainable(self.instructions_embeddings, False)
 
         self.bidirectional_rnn = torch.nn.GRU(
             input_size=self.conf.embedding_size,
@@ -89,7 +94,7 @@ class SAFE(nn.Module):
         dense_1_out = F.relu(self.dense_1(flattened_M))
         function_embedding = F.normalize(self.dense_2(dense_1_out), dim=1, p=2)
 
-        return function_embedding
+        return function_embedding, A.mean(dim=0)
 
     # def forward(self, instructions, lengths):
     #     # for now assume a batch size of 1

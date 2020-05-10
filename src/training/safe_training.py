@@ -5,7 +5,7 @@ from gensim import models
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
 from ignite.metrics import RunningAverage, Loss
-from keras.optimizers import Adam
+from torch.optim import Adam
 
 from src.database.database import get_database_client, load_nmt_data_end
 from src.dataset import get_data_loaders
@@ -49,15 +49,14 @@ def do_training(cuda, data_args, db, rt):
     w2v = models.Word2Vec.load(embedding_weights)
     # this is used to map word in text into one-hot encoding
     embeddings = _make_embedding(data_end.vocab.tkn2idx, rt.n_emb, w2v)
-    embeddings = embeddings.cuda(device=cuda)
+    embeddings = embeddings.cuda(device=cuda) if cuda else embeddings
 
-    data = t.tensor(data_end.data, dtype=t.long, device=cuda)
-    label = t.tensor(data_end.label, dtype=t.float32, device=cuda)
+    data, label = data_end.data, t.tensor(data_end.label, dtype=t.float32)
 
-    model = SAFE(config, embeddings)
+    model = SAFE(config, data_end.vocab.size, embeddings)
 
     train_optim = Adam(model.parameters(), lr=rt.init_lr)
-    core_loss_fn = SiameseLoss(F.cosine_similarity, t.nn.MSELoss('sum'))
+    core_loss_fn = SiameseLoss(F.cosine_similarity, t.nn.MSELoss())
     loss_fn = AttenPenaltyLoss(core_loss_fn)
 
     ds, ds_val, ds_test = get_data_loaders(data, label, rt.n_batch)
@@ -81,13 +80,13 @@ def do_training(cuda, data_args, db, rt):
     trainer.run(ds, max_epochs=rt.epochs)
 
 
-def out_transform_for_safe(o, y):
+def out_transform_for_safe(_x, y, o):
     """
     Unwrap each output of :class SAFE under the siamese architecture so
     that it is acceptable for siamese metric
     """
     (o1, _), (o2, _) = o
-    return o1, o2, y
+    return (o1, o2), y
 
 
 def _make_embedding(vocabulary, n_emb, model):
