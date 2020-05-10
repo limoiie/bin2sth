@@ -38,10 +38,12 @@ def train(cuda, data_args, **model_args):
 
 
 def do_training(cuda, data_args, db, rt):
+    config = safe.Config()
+
     vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
     # todo: load safe dataset
     data_end = load_nmt_data_end(
-        db, vocab_args, train_corpus, query_corpus)
+        db, vocab_args, train_corpus, query_corpus, config.max_instructions)
 
     # Load a trained w2v model
     w2v = models.Word2Vec.load(embedding_weights)
@@ -52,7 +54,6 @@ def do_training(cuda, data_args, db, rt):
     data = t.tensor(data_end.data, dtype=t.long, device=cuda)
     label = t.tensor(data_end.label, dtype=t.float32, device=cuda)
 
-    config = safe.Config()
     model = SAFE(config, embeddings)
 
     train_optim = Adam(model.parameters(), lr=rt.init_lr)

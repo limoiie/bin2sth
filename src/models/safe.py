@@ -48,53 +48,111 @@ class SAFE(nn.Module):
             self.conf.dense_layer_size, self.conf.embedding_size, bias=True
         )
 
-    def forward(self, instructions, lengths):
-        # for now assume a batch size of 1
-        batch_size = 1
-
-        # check valid input
-        if lengths[0] <= 0:
-            return torch.zeros(batch_size, self.conf.embedding_size)
-
+    def forward(self, instructions):
         # each functions is a list of embeddings id
         # (an id is an index in the embedding matrix)
         # with this we transform it in a list of embeddings vectors.
         instructions_vectors = self.instructions_embeddings(instructions)
-
-        # consider only valid instructions (defdined by lengths)
-        valid_instructions = torch.split(instructions_vectors, lengths[0], 0)[0]
+        # -> batch_size * seq * n_emb
 
         # We create the GRU RNN
-        output, h_n = self.bidirectional_rnn(valid_instructions.unsqueeze(0))
-
-        pad = torch.zeros(
-            1, self.conf.max_instructions - lengths[0], self.conf.embedding_size
-        )
-
-        # We create the matrix H
-        H = torch.cat((output, pad), 1)
+        H, h_n = self.bidirectional_rnn(instructions_vectors)
+        # -> H: batch_size * seq * (2 * rnn_state_size)
+        #      <==> batch_size * seq * n_emb
 
         # We do a tile to account for training batches
-        ws1_tiled = self.WS1.unsqueeze(0)
-        ws2_tiled = self.WS2.unsqueeze(0)
+        ws1_tiled = self.WS1.unsqueeze(0)  # batch_size * attn_depth * n_emb
+        ws2_tiled = self.WS2.unsqueeze(0)  # batch_size * attn_hops * attn_depth
 
         # we compute the matrix A
         A = torch.softmax(
-            ws2_tiled.matmul(torch.tanh(ws1_tiled.matmul(H.transpose(1, 2)))), 2
-        )
+            ws2_tiled.matmul(
+                torch.tanh(
+                    ws1_tiled.matmul(
+                        H.transpose(1, 2)  # -> batch_size * n_emb * seq
+                    )  # -> batch_size * attn_depth * seq
+                )  # -> batch_size * attn_depth * seq
+            ),  # -> batch_size * attn_hops * seq
+            2
+        )  # -> batch_size * attn_hops * seq
 
         # embedding matrix M
         M = A.matmul(H)
+        # -> batch_size * attn_hops * n_emb
 
         # we create the flattened version of M
         flattened_M = M.view(
-            batch_size, 2 * self.conf.attention_hops * self.conf.rnn_state_size
+            -1, 2 * self.conf.attention_hops * self.conf.rnn_state_size
         )
+        # -> batch_size * (attn_hops * n_emb), where n_emb == 2 * rnn_state_size
 
         dense_1_out = F.relu(self.dense_1(flattened_M))
         function_embedding = F.normalize(self.dense_2(dense_1_out), dim=1, p=2)
 
         return function_embedding
+
+    # def forward(self, instructions, lengths):
+    #     # for now assume a batch size of 1
+    #     batch_size = 1
+    #
+    #     # check valid input
+    #     if lengths[0] <= 0:
+    #         return torch.zeros(batch_size, self.conf.embedding_size)
+    #
+    #     # each functions is a list of embeddings id
+    #     # (an id is an index in the embedding matrix)
+    #     # with this we transform it in a list of embeddings vectors.
+    #     instructions_vectors = self.instructions_embeddings(instructions)
+    #
+    #     # consider only valid instructions (defdined by lengths)
+    #     valid_instructions = \
+    #         torch.split(instructions_vectors, lengths[0], 0)[0].unsqueeze(0)
+    #     # -> batch_size * seq * n_emb
+    #
+    #     # We create the GRU RNN
+    #     output, h_n = self.bidirectional_rnn(valid_instructions)
+    #     # -> output: batch_size * seq * (2 * rnn_state_size)
+    #     #      <==> batch_size * seq * n_emb
+    #
+    #     pad = torch.zeros(
+    #       1, self.conf.max_instructions - lengths[0], self.conf.embedding_size
+    #     )
+    #     # batch_size * (max_ins - seq) * n_emb
+    #
+    #     # We create the matrix H
+    #     H = torch.cat((output, pad), 1)
+    #     # batch_size * max_ins * n_emb
+    #
+    #     # We do a tile to account for training batches
+    #     ws1_tiled = self.WS1.unsqueeze(0)  # batch_size * attn_depth * n_emb
+    #   ws2_tiled = self.WS2.unsqueeze(0)  # batch_size * attn_hops * attn_depth
+    #
+    #     # we compute the matrix A
+    #     A = torch.softmax(
+    #         ws2_tiled.matmul(
+    #             torch.tanh(
+    #                 ws1_tiled.matmul(
+    #                     H.transpose(1, 2)  # -> batch_size * n_emb * max_ins
+    #                 )  # -> batch_size * attn_depth * max_ins
+    #             )  # -> batch_size * attn_depth * max_ins
+    #         ),  # -> batch_size * attn_hops * max_ins
+    #         2
+    #     )  # -> batch_size * attn_hops * max_ins
+    #
+    #     # embedding matrix M
+    #     M = A.matmul(H)
+    #     # -> batch_size * attn_hops * n_emb
+    #
+    #     # we create the flattened version of M
+    #     flattened_M = M.view(
+    #       batch_size, 2 * self.conf.attention_hops * self.conf.rnn_state_size
+    #     )
+    #   # -> batch_size * (attn_hops * n_emb), where n_emb == 2 * rnn_state_size
+    #
+    #     dense_1_out = F.relu(self.dense_1(flattened_M))
+    #   function_embedding = F.normalize(self.dense_2(dense_1_out), dim=1, p=2)
+    #
+    #     return function_embedding
 
 
 class Config:
