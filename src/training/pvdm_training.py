@@ -7,8 +7,9 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from src.database.database import get_database_client, load_cbow_data
-from src.models.pvdm import CBowPVDM, WordEmbedding, FuncEmbedding, \
+from src.models.pvdm import CBowPVDM, FuncEmbedding, \
     doc_eval_transform, doc_eval_flatten_transform
+from src.models.modules.word2vec import Word2Vec
 from src.training.build_engine import \
     create_unsupervised_trainer, create_unsupervised_training_evaluator
 from src.training.pvdm_args import ModelArgs
@@ -39,7 +40,7 @@ def do_training(cuda, data_args, db, rt):
     query_loader = DataLoader(query_ds, batch_size=rt.n_batch,
                               collate_fn=_collect_fn)
 
-    embedding = WordEmbedding(vocab.size, rt.n_emb, no_hdn=rt.no_hdn)
+    embedding = Word2Vec(vocab.size, rt.n_emb, no_hdn=rt.no_hdn)
 
     tf_embedding = FuncEmbedding(train_corpus.n_docs, rt.n_emb)
     qf_embedding = FuncEmbedding(query_corpus.n_docs, rt.n_emb)
@@ -54,7 +55,7 @@ def do_training(cuda, data_args, db, rt):
     train_optim = Adam(train_model.parameters(), lr=rt.init_lr)
     query_optim = Adam(query_model.parameters(), lr=rt.init_lr)
 
-    query_model.embedding = train_model.embedding
+    query_model.w2v = train_model.w2v
     # ws = vocab.sub_sample_ratio(rt.ss)
 
     trainer = create_unsupervised_trainer(

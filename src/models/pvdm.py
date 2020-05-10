@@ -1,59 +1,8 @@
 import torch
 import numpy as np
 
-from logging import getLogger
-
-
 from src.models.model import UnSupervisedModule
-
-
-# noinspection PyArgumentList
-class WordEmbedding(torch.nn.Module):
-    def __init__(self, vocab_size, embed_size, padding_idx=0, no_hdn=False):
-        super(WordEmbedding, self).__init__()
-
-        self.vocab_size = vocab_size
-        self.embed_size = embed_size
-        self.padding_idx = padding_idx
-
-        self.idx2vec = self.__create_embedding()
-        self.idx2vec.weight = self.__create_param()
-
-        if no_hdn:
-            self.idx2hdn = self.idx2vec
-        else:
-            self.idx2hdn = self.__create_embedding()
-            self.idx2hdn.weight = self.__create_param()
-
-    def forward(self, idx):
-        return self.forward_vec(idx)
-
-    def forward_vec(self, idx):
-        return self.idx2vec(self.__cuda_wrap(idx))
-
-    def forward_hdn(self, idx):
-        return self.idx2hdn(self.__cuda_wrap(idx))
-
-    def freeze(self):
-        for p in self.parameters():
-            p.required_grad = False
-
-    def active(self):
-        for p in self.parameters():
-            p.required_grad = True
-
-    def __create_embedding(self):
-        return torch.nn.Embedding(self.vocab_size, self.embed_size,
-                                  padding_idx=self.padding_idx)
-
-    def __create_param(self):
-        t = torch.FloatTensor(self.vocab_size, self.embed_size)
-        t.uniform_(-0.5 / self.embed_size, 0.5 / self.embed_size)
-        t[self.padding_idx] = 0
-        return torch.nn.Parameter(t, requires_grad=True)
-
-    def __cuda_wrap(self, data):
-        return data.to(self.idx2vec.weight.device)
+from src.utils.logger import get_logger
 
 
 # noinspection PyArgumentList
@@ -64,19 +13,20 @@ class FuncEmbedding(torch.nn.Module):
         self.corpus_size = corpus_size
         self.embed_size = embed_size
 
-        self.idx2vec = self.__create_embedding()
-        self.idx2vec.weight = self.__create_param()
+        self.idx2vec = self.__create_embedding(
+            self.__create_param())
 
     def forward(self, idx):
         return self.idx2vec(self.__cuda_wrap(idx))
 
-    def __create_embedding(self):
-        return torch.nn.Embedding(self.corpus_size, self.embed_size)
+    def __create_embedding(self, weight):
+        return torch.nn.Embedding(self.corpus_size, self.embed_size,
+                                  _weight=weight)
 
     def __create_param(self):
         t = torch.FloatTensor(self.corpus_size, self.embed_size)
         t.uniform_(-0.5 / self.embed_size, 0.5 / self.embed_size)
-        return torch.nn.Parameter(t, requires_grad=True)
+        return t
 
     def __cuda_wrap(self, data):
         return data.to(self.idx2vec.weight.device)
@@ -85,20 +35,20 @@ class FuncEmbedding(torch.nn.Module):
 # noinspection PyArgumentList
 class CBowPVDM(UnSupervisedModule):
 
-    logger = getLogger('CBowPVDM')
+    logger = get_logger('CBowPVDM')
 
     def __init__(self, embedding, doc_embedding, vocab_size, n_negs, wr=None):
         super(CBowPVDM, self).__init__()
 
-        self.embedding = embedding
-        self.doc_embedding = doc_embedding
+        self.w2v = embedding
+        self.f2v = doc_embedding
         self.vocab_size = vocab_size
         self.n_negs = n_negs
         self.neg_samp_dist = None
 
         if wr is not None:
             t = np.power(wr, 0.75)
-            self.neg_samp_dist = torch.FloatTensor(t / t.sum())
+            self.neg_samp_dist = torch.from_numpy(t / t.sum())
 
     def forward(self, input_batch):
         fun, word, context = input_batch
@@ -106,16 +56,16 @@ class CBowPVDM(UnSupervisedModule):
         neg_words = self.__neg_sample(batch_size)
 
         # batch_size * 1 * embed_size
-        cur_vec = self.embedding.forward_hdn(word).unsqueeze(1)
+        cur_vec = self.w2v.forward_hdn(word).unsqueeze(1)
         # batch_size * n_negs * embed_size
-        neg_vec = self.embedding.forward_hdn(neg_words).neg()
+        neg_vec = self.w2v.forward_hdn(neg_words).neg()
         # batch_size * (1 + n_negs) * embed_size
         sam_vec = torch.cat([cur_vec, neg_vec], dim=1)
 
         # batch_size * 1 * embed_size
-        fun_vec = self.doc_embedding.forward(fun).unsqueeze(1)
+        fun_vec = self.f2v.forward(fun).unsqueeze(1)
         # batch_size * ctx_size * embed_size
-        ctx_vec = self.embedding.forward_vec(context)
+        ctx_vec = self.w2v.forward_vec(context)
         # batch_size * embed_size * 1
         prd_vec = torch.cat([fun_vec, ctx_vec], dim=1).mean(dim=1).unsqueeze(2)
 
@@ -127,7 +77,7 @@ class CBowPVDM(UnSupervisedModule):
         return loss
 
     def interested_out(self):
-        return self.embedding, self.doc_embedding
+        return self.w2v, self.f2v
 
     def __neg_sample(self, batch_size):
         if self.neg_samp_dist is not None:
