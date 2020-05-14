@@ -1,26 +1,6 @@
 import torch
 
 from src.corpus import Corpus
-from src.preprocesses.preprocess import DocIter
-
-
-class DIPadding(DocIter):
-    """ padding the function body to a unified len """
-    def __init__(self, maxlen, ph):
-        self.maxlen = maxlen
-        self.ph = ph
-
-    def __call__(self, prog):
-        for label, stmts in prog:
-            yield label, self.pad_stmts(stmts)
-
-    def pad_stmts(self, stmts):
-        if len(stmts) >= self.maxlen:
-            return stmts[:self.maxlen]
-        # todo: consider return the real lens too so that we
-        #  can pack them before feeding them into lstm, or
-        #  something like that
-        return [self.ph] * (self.maxlen - len(stmts)) + stmts
 
 
 class NMTInsDataEnd:

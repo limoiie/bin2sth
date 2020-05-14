@@ -29,6 +29,7 @@ def load_vocab(db, args: BinArgs):
 def load_corpus(db, args: BinArgs, vocab):
     progs = load_progs_jointly(db, args)
     return rx.just(BinBag(progs)).pipe(
+        pp.PpFullLabel().as_map(),
         pp.PpMergeBlocks().as_map(),
         pp.PpFilterFunc(minlen=5).as_map(),
         pp.PpTokenizer().as_map(),
@@ -59,6 +60,7 @@ def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen, minlen=5):
     """
     progs = load_progs_jointly(db, args)
     return rx.just(BinBag(progs)).pipe(
+        pp.PpFullLabel().as_map(),
         pp.PpMergeBlocks().as_map(),
         pp.PpFilterFunc(minlen=minlen).as_map(),
         pp.PpOneHotEncoder(vocab).as_map(),

@@ -1,18 +1,15 @@
 import functools
-import itertools
 import re
 from typing import Iterable, Optional, List
 
 import rx
 from rx import operators as ops, Observable
 
+import src.utils.rx.operators as ops_
 from src.corpus import CorpusBuilder
 from src.ida.code_elements import Program, Function, Block
 from src.utils.logger import get_logger
 from src.vocab import AsmVocabBuilder
-
-import src.utils.rx.operators as ops_
-
 
 logger = get_logger('preprocess')
 
@@ -25,21 +22,7 @@ def split_inst_into_tokens(line):
 
 
 def label_func(prog, func):
-    return prog['prog'] + prog['prog_ver'] + func['label']
-
-
-def label_func_(prog: Program, func: Function):
     return prog.prog + prog.prog_ver + func.label
-
-
-class DocIter:
-    def __call__(self, prog):
-        raise NotImplementedError
-
-    def per(self, progs: list):
-        """  map with __call__ and reduce with unite """
-        for prog in progs:
-            yield self(prog)
 
 
 class BinBag:
@@ -100,37 +83,6 @@ class Pp:
         return ops.map(self)
 
 
-class DIProxy(DocIter):
-    def __init__(self, iters):
-        self.iters = iters
-
-    def __call__(self, prog):
-        return functools.reduce(lambda p, di: di(p), self.iters, prog)
-
-    def per(self, progs):
-        return functools.reduce(lambda p, di: di.per(p), self.iters, progs)
-
-
-class DIExtract(DocIter):
-    """
-    Convert Program dict into a sequence of (func_label, func_stmts)
-    """
-
-    def __call__(self, prog):
-        if isinstance(prog, Program):
-            prog = prog.__dict__
-
-        try:
-            for func in prog['funcs']:
-                label, stmts = label_func(prog, func), []
-                for block in func['blocks']:
-                    stmts += block['src']
-                yield label, stmts
-        except KeyError:
-            raise Exception('prog should be an inst of <Program> or <Dict>!\n\
-                Check if the fields name of <Program> have been changed.')
-
-
 class PpFullLabel(Pp):
     def p_fun(self, fun: Function, prog: Program) -> Optional[Function]:
         fun.label = label_func(prog, fun)
@@ -139,17 +91,6 @@ class PpFullLabel(Pp):
 
 def tokenize(stmts):
     return list(map(split_inst_into_tokens, stmts))
-
-
-class DITokenizer(DocIter):
-    """
-    Tokenize statements in the <prog>. <prog> should be a list of
-    <func>s; each <func> should consist of a label and the stmts
-    in lines
-    """
-    def __call__(self, prog):
-        for label, stmts in prog:
-            yield label, tokenize(stmts)
 
 
 class PpTokenizer(Pp):
@@ -166,23 +107,6 @@ class PpTokenizer(Pp):
         return blk
 
 
-class DIStmts(DocIter):
-    """ Collect function bodys """
-    def __call__(self, prog):
-        for _, stmts in prog:
-            yield stmts
-
-
-class DIFilterDoc(DocIter):
-    def __init__(self, min_body_size):
-        self.min_body_size = min_body_size
-
-    def __call__(self, prog):
-        for label, stmts in prog:
-            if len(stmts) >= self.min_body_size:
-                yield label, stmts
-
-
 # depend on PpMergeBlocks
 class PpFilterFunc(Pp):
     def __init__(self, minlen):
@@ -194,22 +118,6 @@ class PpFilterFunc(Pp):
             ops.filter(lambda cf: cf[0] >= self.minlen),
             ops.map(lambda cf: cf[1])
         )
-
-
-class DICorpus(DocIter):
-    """ Collect function labels """
-    def __call__(self, prog):
-        for label, _ in prog:
-            yield label
-
-
-class DIOneHotEncode(DocIter):
-    def __init__(self, vocab):
-        self.vocab = vocab
-
-    def __call__(self, prog):
-        for label, stmts in prog:
-            yield label, self.vocab.onehot_encode(stmts)
 
 
 class PpOneHotEncoder(Pp):
@@ -235,19 +143,6 @@ class PpMergeBlocks(Pp):
             -> List[Block]:
         fun.stmts = sum(map(lambda blk: blk.src, blks), [])
         return blks
-
-
-class DIMergeProgs(DocIter):
-    """
-    Unite the list of progs into a list of docs, where each prog
-    contains a list of docs and each doc corresponding to a function
-    """
-    def __call__(self, prog):
-        for doc in prog:
-            yield doc
-
-    def per(self, progs):
-        return itertools.chain(*progs)
 
 
 # add <funcs> into <BinBag>
