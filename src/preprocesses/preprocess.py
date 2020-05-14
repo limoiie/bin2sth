@@ -1,9 +1,23 @@
+import functools
+import itertools
 import re
+from typing import Iterable, Optional, List
 
-from src.ida.code_elements import Program
+import rx
+from rx import operators as ops, Observable
+
+from src.corpus import CorpusBuilder
+from src.ida.code_elements import Program, Function, Block
+from src.utils.logger import get_logger
+from src.vocab import AsmVocabBuilder
+
+import src.utils.rx.operators as ops_
 
 
-def split(line):
+logger = get_logger('preprocess')
+
+
+def split_inst_into_tokens(line):
     def f(l):
         return len(l) > 0
     tokens = re.split(r'[+\-*@$^&\\\[\]:(),;\s]', line.strip())
@@ -14,14 +28,76 @@ def label_func(prog, func):
     return prog['prog'] + prog['prog_ver'] + func['label']
 
 
+def label_func_(prog: Program, func: Function):
+    return prog.prog + prog.prog_ver + func.label
+
+
 class DocIter:
     def __call__(self, prog):
         raise NotImplementedError
 
-    def per(self, progs):
+    def per(self, progs: list):
         """  map with __call__ and reduce with unite """
         for prog in progs:
             yield self(prog)
+
+
+class BinBag:
+    progs: Iterable[Program]
+
+    def __init__(self, progs):
+        self.progs = progs
+
+
+def to_obs(stream):
+    if isinstance(stream, Observable):
+        return stream
+    assert isinstance(stream, Iterable)
+    return rx.from_iterable(stream)
+
+
+class Pp:
+    def __call__(self, bag: BinBag):
+        return self.p(bag)
+
+    def p(self, bag: BinBag) -> BinBag:
+        bag.progs = to_obs(bag.progs).pipe(
+            ops.map(lambda prog: self.p_prg(prog)))
+        return bag
+
+    def p_prg(self, prog: Program) -> Program:
+        prog.funcs = self.p_funs(to_obs(prog.funcs), prog)
+        return prog
+
+    def p_fun(self, fun: Function, prog: Program) -> Optional[Function]:
+        fun.blocks = self.p_blks(fun.blocks, fun, prog)
+        # fun.blocks = self.p_blks(to_obs(fun.blocks), fun, prog)
+        return fun
+
+    def p_blk(self, blk: Block, fun: Function, prog: Program) \
+            -> Optional[Block]:
+        return blk
+
+    def p_funs(self, funs: Observable, prog: Program) -> Observable:
+        return funs.pipe(
+            ops.map(lambda fun: self.p_fun(fun, prog)),
+            ops.filter(lambda fun: fun is not None)
+        )
+
+    # def p_blks(self, blks: Observable, fun: Function, prog: Program) \
+    #         -> Observable:
+    #     return blks.pipe(
+    #         ops.map(lambda blk: self.p_blk(blk, fun, prog)),
+    #         ops.filter(lambda blk: blk is not None)
+    #     )
+
+    def p_blks(self, blks: List[Block], fun: Function, prog: Program) \
+            -> List[Block]:
+        p_blk = functools.partial(self.p_blk, fun=fun, prog=prog)
+        return list(filter(None, map(p_blk, blks)))
+
+    def as_map(self):
+        return ops.map(self)
 
 
 class DIProxy(DocIter):
@@ -29,19 +105,15 @@ class DIProxy(DocIter):
         self.iters = iters
 
     def __call__(self, prog):
-        for doc_iter in self.iters:
-            prog = doc_iter(prog)
-        return prog
+        return functools.reduce(lambda p, di: di(p), self.iters, prog)
 
     def per(self, progs):
-        for doc_iter in self.iters:
-            progs = doc_iter.per(progs)
-        return progs
+        return functools.reduce(lambda p, di: di.per(p), self.iters, progs)
 
 
-class DIPure(DocIter):
-    """  
-    Convert Program dict into a sequence of (func_label, func_stmts) 
+class DIExtract(DocIter):
+    """
+    Convert Program dict into a sequence of (func_label, func_stmts)
     """
 
     def __call__(self, prog):
@@ -59,34 +131,39 @@ class DIPure(DocIter):
                 Check if the fields name of <Program> have been changed.')
 
 
+class PpFullLabel(Pp):
+    def p_fun(self, fun: Function, prog: Program) -> Optional[Function]:
+        fun.label = label_func(prog, fun)
+        return fun
+
+
 def tokenize(stmts):
-    for stmt in stmts:
-        yield split(stmt)
+    return list(map(split_inst_into_tokens, stmts))
 
 
 class DITokenizer(DocIter):
-    """ 
+    """
     Tokenize statements in the <prog>. <prog> should be a list of
-    <func>s; each <func> should consist of a label and the stmts 
+    <func>s; each <func> should consist of a label and the stmts
     in lines
     """
     def __call__(self, prog):
-        
         for label, stmts in prog:
             yield label, tokenize(stmts)
 
 
-def inst_tokenize(stmts):
-    """Take the whole instruction as a token"""
-    for stmt in stmts:
-        yield [stmt]
+class PpTokenizer(Pp):
+    def p_fun(self, fun: Function, prog: Program)\
+            -> Optional[Function]:
+        if hasattr(fun, 'stmts'):
+            fun.stmts = tokenize(fun.stmts)
+            return fun
+        return super().p_fun(fun, prog)
 
-
-class DIInstTokenizer(DocIter):
-    def __call__(self, prog):
-
-        for label, stmts in prog:
-            yield label, inst_tokenize(stmts)
+    def p_blk(self, blk: Block, fun: Function, prog: Program) \
+            -> Optional[Block]:
+        blk.src = tokenize(blk.src)
+        return blk
 
 
 class DIStmts(DocIter):
@@ -106,19 +183,17 @@ class DIFilterDoc(DocIter):
                 yield label, stmts
 
 
-class DIMergeProgs(DocIter):
-    """ 
-    Unite the list of progs into a list of docs, where each prog 
-    contains a list of docs and each doc corresponding to a function
-    """
-    def __call__(self, prog):
-        for doc in prog:
-            yield doc
+# depend on PpMergeBlocks
+class PpFilterFunc(Pp):
+    def __init__(self, minlen):
+        self.minlen = minlen
 
-    def per(self, progs):
-        for prog in progs:
-            for doc in prog:
-                yield doc
+    def p_funs(self, funs: Observable, prog: Program) -> Observable:
+        return funs.pipe(
+            ops.map(lambda fun: (len(fun.stmts), fun)),
+            ops.filter(lambda cf: cf[0] >= self.minlen),
+            ops.map(lambda cf: cf[1])
+        )
 
 
 class DICorpus(DocIter):
@@ -135,6 +210,108 @@ class DIOneHotEncode(DocIter):
     def __call__(self, prog):
         for label, stmts in prog:
             yield label, self.vocab.onehot_encode(stmts)
+
+
+class PpOneHotEncoder(Pp):
+    def __init__(self, vocab):
+        self.vocab = vocab
+
+    def p_fun(self, fun: Function, prog: Program) \
+            -> Optional[Function]:
+        if hasattr(fun, 'stmts'):
+            fun.stmts = self.vocab.onehot_encode(fun.stmts)
+            return fun
+        return super().p_fun(fun, prog)
+
+    def p_blk(self, blk: Block, fun: Function, prog: Program) \
+            -> Optional[Block]:
+        blk.src = self.vocab.onehot_encode(blk.src)
+        return blk
+
+
+# insert field <stmts> into Function
+class PpMergeBlocks(Pp):
+    def p_blks(self, blks: List[Block], fun: Function, prog: Program) \
+            -> List[Block]:
+        fun.stmts = sum(map(lambda blk: blk.src, blks), [])
+        return blks
+
+
+class DIMergeProgs(DocIter):
+    """
+    Unite the list of progs into a list of docs, where each prog
+    contains a list of docs and each doc corresponding to a function
+    """
+    def __call__(self, prog):
+        for doc in prog:
+            yield doc
+
+    def per(self, progs):
+        return itertools.chain(*progs)
+
+
+# add <funcs> into <BinBag>
+class PpMergeFuncs(Pp):
+    def p(self, bag: BinBag) -> BinBag:
+        bag.funcs = to_obs(bag.progs).pipe(
+            ops.flat_map(
+                lambda prog: to_obs(prog.funcs)))
+        return bag
+
+
+# depends on PpMergeBlocks ==> PpMergeProgs
+class PpOutStmts(Pp):
+    def p(self, bag: BinBag) -> BinBag:
+        bag.o_stmts = bag.funcs.pipe(
+            ops.map(lambda f: f.stmts))
+        return bag
+
+
+# depends on PpMergeBlocks ==> PpMergeProgs
+class PpPadding(Pp):
+    def __init__(self, maxlen, ph):
+        self.maxlen = maxlen
+        self.ph = ph
+
+    def p_fun(self, fun: Function, prog: Program) \
+            -> Optional[Function]:
+        fun.stmts = self.pad_stmts(fun.stmts)
+        return fun
+
+    def pad_stmts(self, stmts):
+        if len(stmts) >= self.maxlen:
+            return stmts[:self.maxlen]
+        # todo: consider return the real lens too so that we
+        #  can pack them before feeding them into lstm, or
+        #  something like that
+        return [self.ph] * (self.maxlen - len(stmts)) + stmts
+
+
+# depends on PpOutStmts ==> PpMergeBlocks ==> PpMergeProgs
+class PpVocab(Pp):
+    def __init__(self, min_freq=0, max_vocab=10000):
+        self.builder = AsmVocabBuilder(min_freq, max_vocab)
+        self.builder.reset()
+
+    def p(self, bag: BinBag) -> BinBag:
+        bag.vocab = bag.o_stmts.pipe(
+            ops_.tap(self.builder.scan),
+            ops_.end_act(self.builder.build)
+        )
+        return bag
+
+
+class PpCorpus(Pp):
+    def __init__(self):
+        self.builder = CorpusBuilder()
+        self.builder.reset()
+
+    def p(self, bag: BinBag) -> BinBag:
+        bag.corpus = bag.funcs.pipe(
+            ops_.tap(lambda f: self.builder.scan(f.label, f.stmts)),
+            ops_.end_act(self.builder.build)
+        )
+        return bag
 
 
 def unk_idx_list(l):

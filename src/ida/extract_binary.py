@@ -51,7 +51,7 @@ def make_inst(head):
     mnem = idc.GetMnem(head)
     if mnem == '':
         return []
-    mnem = idc.GetDisasm(head).split()[0]
+    mnem = idc.GetDisasm(head).split_inst_into_tokens()[0]
 
     opds = []
     # get opds one by one

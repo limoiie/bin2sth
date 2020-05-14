@@ -1,14 +1,11 @@
+import rx
 from pymongo import MongoClient
 
-from src.corpus import Corpus
+import src.preprocesses.preprocess as pp
 from src.database.program_dao import BinArgs, load_progs_jointly
-from src.preprocesses.preprocess import DIOneHotEncode, DIInstTokenizer, \
-    DIFilterDoc
-from src.preprocesses.preprocess import DIProxy, DIPure, DIStmts
-from src.preprocesses.preprocess import DITokenizer, DIMergeProgs
 from src.preprocesses.cbow_pp import CBowDatasetBuilder, sync_corpus
-from src.preprocesses.nmt_inspired_pp import DIPadding, NMTInsDataEnd
-from src.vocab import AsmVocab
+from src.preprocesses.nmt_inspired_pp import NMTInsDataEnd
+from src.preprocesses.preprocess import BinBag
 
 
 def get_database_client():
@@ -20,38 +17,40 @@ def load_vocab(db, args: BinArgs):
     """Load the vocab where the word unit is operands/operators"""
     # TODO: cache into db
     progs = load_progs_jointly(db, args)
-    pp = DIProxy([DIPure(), DITokenizer(), DIStmts(), DIMergeProgs()])
-    docs = pp.per(progs)
-    vocab = AsmVocab()
-    vocab.build(docs)
-    return vocab
+    return rx.just(BinBag(progs)).pipe(
+        pp.PpMergeBlocks().as_map(),
+        pp.PpTokenizer().as_map(),
+        pp.PpMergeFuncs().as_map(),
+        pp.PpOutStmts().as_map(),
+        pp.PpVocab().as_map()
+    ).run().vocab.run()
 
 
 def load_corpus(db, args: BinArgs, vocab):
     progs = load_progs_jointly(db, args)
-    pp = DIProxy([
-        DIPure(),  DIFilterDoc(min_body_size=5),
-        DITokenizer(), DIOneHotEncode(vocab), DIMergeProgs()
-    ])
-    docs = pp.per(progs)
-    corpus = Corpus()
-    corpus.build(docs)
-    return corpus
+    return rx.just(BinBag(progs)).pipe(
+        pp.PpMergeBlocks().as_map(),
+        pp.PpFilterFunc(minlen=5).as_map(),
+        pp.PpTokenizer().as_map(),
+        pp.PpOneHotEncoder(vocab).as_map(),
+        pp.PpMergeFuncs().as_map(),
+        pp.PpCorpus().as_map()
+    ).run().corpus.run()
 
 
 def load_inst_vocab(db, args: BinArgs):
     """Load the vocab where the word unit is instruction"""
     # TODO: cache into db
     progs = load_progs_jointly(db, args)
-    pp = DIProxy([DIPure(), DIInstTokenizer(), DIStmts(), DIMergeProgs()])
-    docs = pp.per(progs)
-    vocab = AsmVocab()
-    vocab.build(docs)
-    return vocab
+    return rx.just(BinBag(progs)).pipe(
+        pp.PpMergeBlocks().as_map(),
+        pp.PpMergeFuncs().as_map(),
+        pp.PpOutStmts().as_map(),
+        pp.PpVocab().as_map()
+    ).run().vocab.run()
 
 
-def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen, 
-                             min_body_size=5):
+def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen, minlen=5):
     """
     Load corpus where the whole instruction is taken as the word-unit.
     Besides, each function body will be padding with `0', which is
@@ -59,14 +58,14 @@ def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen,
     (body) size.
     """
     progs = load_progs_jointly(db, args)
-    pp = DIProxy([
-        DIPure(), DIFilterDoc(min_body_size=min_body_size),
-        DIOneHotEncode(vocab), DIPadding(maxlen, 0), DIMergeProgs()
-    ])
-    docs = pp.per(progs)
-    corpus = Corpus()
-    corpus.build(docs)
-    return corpus
+    return rx.just(BinBag(progs)).pipe(
+        pp.PpMergeBlocks().as_map(),
+        pp.PpFilterFunc(minlen=minlen).as_map(),
+        pp.PpOneHotEncoder(vocab).as_map(),
+        pp.PpPadding(maxlen, 0).as_map(),
+        pp.PpMergeFuncs().as_map(),
+        pp.PpCorpus().as_map()
+    ).run().corpus.run()
 
 
 def load_cbow_data(db, vocab_args, train_args, query_args, window, ss):
