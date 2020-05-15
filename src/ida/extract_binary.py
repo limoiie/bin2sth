@@ -136,7 +136,7 @@ def extract(prog_name, prog_ver, cc, cc_ver, opt, obf):
 
 def auto_extract(filepath):
     _, filename = os.path.split(filepath)
-    res = re.match(r'(\w*?)@(.*?)-(O[0123])-(\w*)-(.*?)-(\w*)', filename)
+    res = re.match(r'(\w*?)@(.*?)-.*-(\w*?)-(\w*?)-(O[0123])-(\w*)', filename)
     prog_name, prog_ver, cc, cc_ver, opt, obf = res.groups()
     # print(f'{prog_name}, {prog_ver}, {cc}, {cc_ver}, {opt}, {obf}')
     extract(prog_name, prog_ver, cc, cc_ver, opt, obf)

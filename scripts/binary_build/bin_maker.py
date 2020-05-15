@@ -93,8 +93,8 @@ class BinMaker(ABC):
         )
 
     def __make_target_path(self):
-        out_filename = f'{self.proj}-{self.opt}-{self.get_cc()}' \
-                       f'-{self.obf_flags.flag}'
+        out_filename = f'{self.proj}-{self.get_cc()}-' \
+                       f'{self.opt}-{self.obf_flags.flag}'
         out = os.path.join(self.bin_path, out_filename)
         return out
 
