@@ -1,4 +1,6 @@
 import sys
+import os
+import re
 
 import fire
 import idaapi
@@ -51,7 +53,7 @@ def make_inst(head):
     mnem = idc.GetMnem(head)
     if mnem == '':
         return []
-    mnem = idc.GetDisasm(head).split_inst_into_tokens()[0]
+    mnem = idc.GetDisasm(head).split()[0]
 
     opds = []
     # get opds one by one
@@ -132,6 +134,14 @@ def extract(prog_name, prog_ver, cc, cc_ver, opt, obf):
     obj.dump(file, obj)
 
 
-fire.Fire(extract)
+def auto_extract(filepath):
+    _, filename = os.path.split(filepath)
+    res = re.match(r'(\w*?)@(.*?)-(O[0123])-(\w*)-(.*?)-(\w*)', filename)
+    prog_name, prog_ver, cc, cc_ver, opt, obf = res.groups()
+    # print(f'{prog_name}, {prog_ver}, {cc}, {cc_ver}, {opt}, {obf}')
+    extract(prog_name, prog_ver, cc, cc_ver, opt, obf)
+
+
+fire.Fire(auto_extract)
 
 idc.Exit(0)
