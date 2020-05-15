@@ -44,13 +44,13 @@ def apply_obfuscator_flags(obf_flags, flags):
         flags += f' -mllvm -bcf -mllvm -bcf_loop={obf_flags.bcf.loop}'
     if obf_flags.fla.enable:
         flags += f' -mllvm -fla'
-        if obf_flags.fla.split_inst_into_tokens:
+        if obf_flags.fla.split:
             flags += f' -mllvm -split -mllvm -split_num={obf_flags.fla.num}'
     return flags
 
 
 def parse_obfuscation_flags(obf):
-    obfs = obf.split_inst_into_tokens(',')
+    obfs = obf.split(',')
     flags = ObfuscationFlag()
     flags.flag = obf.replace(',', '-') if obf else 'none'
     for obf in obfs:

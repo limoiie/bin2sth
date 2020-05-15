@@ -1,5 +1,5 @@
 import fire
-import pysnooper
+# import pysnooper
 
 from scripts.binary_build.architecture_cfg import parser_architecture_flag
 from scripts.binary_build.bin_maker import *
@@ -22,16 +22,16 @@ def build(projs, ccs, opts, archs, obfs, src_path, build_path, out_path):
     :param build_path:
     :param out_path:
     """
-    program_path = '/home/limo/Downloads/opensource/asm2vec_rebuild'
+    program_path = '/media/psf/Home/Downloads/opensource/asm2vec_rebuild'
     src_path = os.path.join(program_path, src_path)
     build_path = os.path.join(program_path, build_path)
     out_path = os.path.join(program_path, out_path)
 
-    opts = opts.split_inst_into_tokens(';')
-    projs = projs.split_inst_into_tokens(';')
-    archs = archs.split_inst_into_tokens(';')
-    ccs = ccs.split_inst_into_tokens(';')
-    obfs = obfs.split_inst_into_tokens(';')
+    opts = opts.split(';')
+    projs = projs.split(';')
+    archs = archs.split(';')
+    ccs = ccs.split(';')
+    obfs = obfs.split(';')
 
     for proj, maker_cls in BinMaker.maker_center.items():
         if not contain_any(proj, projs):
