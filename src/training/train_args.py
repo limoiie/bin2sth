@@ -14,6 +14,15 @@ class DatasetArgs(AsJson):
         self.find_corpus = find_corpus
 
 
+class SingleDatasetArgs(AsJson):
+    vocab: BinArgs
+    corpus: BinArgs
+
+    def __init__(self, vocab, corpus):
+        self.vocab = vocab
+        self.corpus = corpus
+
+
 class RuntimeArgs(AsJson):
 
     def __init__(self, epochs, n_batch, init_lr):
@@ -26,19 +35,21 @@ class TrainArgs(AsJson):
     """
     Used to identify model and training results, such as loss and metrics
     """
-    ds: DatasetArgs
     rt: RuntimeArgs
 
     def __init__(self, dataset_args, runtime_args, model_args):
-        self.ds: DatasetArgs = dataset_args
+        self.ds = dataset_args
         self.rt: RuntimeArgs = runtime_args
         self.m = model_args
 
 
-def parse_dataset_args_from_file(file) -> DatasetArgs:
+def parse_dataset_args_from_file(file):
     args = load_json_file(file)
-    args['find_corpus'] = json_update(args['base_corpus'], args['find_corpus'])
     vocab = AsJson.from_dict(BinArgs, args['vocab'])
+    if 'corpus' in args:
+        corpus = AsJson.from_dict(BinArgs, args['corpus'])
+        return SingleDatasetArgs(vocab, corpus)
+    args['find_corpus'] = json_update(args['base_corpus'], args['find_corpus'])
     base_corpus = AsJson.from_dict(BinArgs, args['base_corpus'])
     find_corpus = AsJson.from_dict(BinArgs, args['find_corpus'])
     return DatasetArgs(vocab, base_corpus, find_corpus)
