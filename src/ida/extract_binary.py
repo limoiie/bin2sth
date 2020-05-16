@@ -73,13 +73,17 @@ def make_inst(head):
     return ', '.join(inst)
 
 
+def block_label(ea):
+    return 'loc_' + iu.to_hex_(ea)
+
+
 def make_block(block, arch, cfg):
     """
   Create block. Instructions are extracted, the refereed data is
   collected and the CFG is filled
   """
     self = Block()
-    self.label = 'loc_' + iu.to_hex_(block.start_ea)
+    self.label = block_label(block.start_ea)
 
     self.ea = block.start_ea
     if arch.type == 'arm':
@@ -96,7 +100,7 @@ def make_block(block, arch, cfg):
             self.ref_data[i] = iu.to_hex_inv(idc.Qword(ref))
 
     # fill succs into cfg
-    cfg[self.ea] = [succ.start_ea for succ in block.succs()]
+    cfg[self.label] = [block_label(succ.start_ea) for succ in block.succs()]
 
     return self
 
