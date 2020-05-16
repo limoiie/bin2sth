@@ -48,3 +48,95 @@ class Word2Vec(torch.nn.Module):
 
     def __cuda_wrap(self, data):
         return data.to(self.idx2vec.weight.device)
+
+
+class CBow(torch.nn.Module):
+
+    def __init__(self, w2v, sampler):
+        super().__init__()
+        self.w2v = w2v
+        self.sampler = sampler
+
+    def forward(self, input_batch):
+        # ctx: batch_size x n_ctx  :pre
+        # cur: batch_size          :hdn
+        cur, ctx = input_batch
+        batch_size = cur.size()[0]
+
+        # neg: batch_size x n_neg  :hdn
+        neg = self.sampler.neg_sample(batch_size, self.sampler.n_negs)
+        # -> batch_size x n_neg
+
+        cur_vec = self.w2v.forward_hdn(cur).unsqueeze(1)
+        # -> batch_size x 1 x n_emb
+        neg_vec = self.w2v.forward_hdn(neg).neg()
+        # -> batch_size x n_neg x n_emb
+        sam_vec = torch.cat([cur_vec, neg_vec], dim=1)
+        # -> batch_size x (1 + n_nge) x n_emb
+        prd_vec = self.w2v.forward_vec(ctx).mean(dim=1).unsqueeze(2)
+        # -> batch_size x n_emb x 1
+        sim_mat = torch.bmm(sam_vec, prd_vec).squeeze(2)
+        # -> batch_size x (1 + n_neg)
+        return -sim_mat.sigmoid().log().sum(dim=1).mean()
+
+
+class SkipGram(torch.nn.Module):
+
+    def __init__(self, w2v, sampler):
+        super().__init__()
+        self.w2v = w2v
+        self.sampler = sampler
+
+    def forward(self, input_batch):
+        # ctx: batch_size x n_ctx :hdn
+        # cur: batch_size         :pre
+        cur, ctx = input_batch
+        batch_size, n_ctx = ctx.size()[0], ctx.size()[1]
+
+        # neg: batch_size x n_ctx x n_neg :hdn
+        neg = self.sampler.neg_sample(batch_size, self.sampler.n_negs * n_ctx)
+
+        ctx_vec = self.w2v.forward_hdn(ctx)
+        # -> batch_size x n_ctx x n_emb
+        neg_vec = self.w2v.forward_hdn(neg).neg()
+        # -> batch_size x (n_ctx * n_neg) x n_emb
+        sam_vec = torch.cat([ctx_vec, neg_vec], dim=1)
+        # -> batch_size x (n_ctx * (n_neg + 1)) x n_emb
+        cur_vec = self.w2v.forward_vec(cur).unsqueeze(2)
+        # -> batch_size x n_emb x 1
+        sim_mat = torch.bmm(sam_vec, cur_vec).squeeze(2)
+        # -> batch_size x (n_ctx * (n_neg + 1))
+        return -sim_mat.sigmoid().log().sum(dim=1).mean()
+
+
+class NegSample(torch.nn.Module):
+
+    def __init__(self, vocab_size, n_negs, wr=None):
+        super().__init__()
+        self.vocab_size = vocab_size
+        self.n_negs = n_negs
+        self.__neg_sample_dist = None
+
+        if wr is not None:
+            t = torch.tensor(wr).pow(0.75)
+            self.__neg_sample_dist = t / t.sum()
+
+    def neg_sample(self, batch_size, n_negs):
+        # note: I did avoid the positive word during negatively sampling
+        # words because, in my opinion, the only downside of no avoiding
+        # is the loss cancelling which may slow down the training process
+        # slightly but has very little possibility to take place
+        if self.__neg_sample_dist is not None:
+            return self.__neg_sample_in_dist(batch_size, n_negs)
+        return self.__neg_sample_in_uniform(batch_size, n_negs)
+
+    def __neg_sample_in_dist(self, batch_size, n_negs):
+        """Negative sampling in a given distribution"""
+        return torch.multinomial(
+            self.__neg_sample_dist, batch_size * n_negs,
+            replacement=True).view(batch_size, -1)
+
+    def __neg_sample_in_uniform(self, batch_size, n_negs):
+        """Uniformly negative sampling"""
+        return torch.zeros(batch_size, n_negs) \
+            .uniform_(1, self.vocab_size).long()

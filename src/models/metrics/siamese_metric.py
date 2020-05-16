@@ -10,6 +10,7 @@ class SiameseMetric(Metric):
     :param metric: target metric which is supposed to work on the output
     that in the form of `(y_pred, y)'
     """
+
     def __init__(self, sim_fn, metric: Metric):
         self.metric = metric
         super().__init__()

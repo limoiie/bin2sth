@@ -6,7 +6,7 @@ from ignite.metrics import RunningAverage, TopKCategoricalAccuracy
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from src.database.database import get_database_client, load_cbow_data
+from src.database.database import get_database_client, load_pvdm_data
 from src.models.pvdm import CBowPVDM, FuncEmbedding, \
     doc_eval_transform, doc_eval_flatten_transform
 from src.models.modules.word2vec import Word2Vec
@@ -33,7 +33,7 @@ def do_training(cuda, data_args, db, rt):
     vocab_arg, train_corpus_arg, query_corpus_arg = parse_eval_file(data_args)
 
     vocab, train_corpus, query_corpus, train_ds, query_ds = \
-        load_cbow_data(db, vocab_arg, train_corpus_arg, query_corpus_arg,
+        load_pvdm_data(db, vocab_arg, train_corpus_arg, query_corpus_arg,
                        rt.window, rt.ss)
     train_loader = DataLoader(train_ds, batch_size=rt.n_batch,
                               collate_fn=_collect_fn)

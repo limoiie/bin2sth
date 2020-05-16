@@ -7,6 +7,7 @@ class SiameseLoss(t.nn.Module):
     by computing a similarity first. Then the similarity and the label
     will be passed into the :param loss_fn to compute the final loss.
     """
+
     def __init__(self, sim_fn, loss_fn):
         super().__init__()
         self.sim_fn = sim_fn

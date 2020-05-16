@@ -1,12 +1,14 @@
 import random
 
-from src.corpus import Corpus
-from src.dataset import ReloadableDataset
+import torch
+
+from src.preprocesses.corpus import Corpus
+from src.dataset.dataset import ReloadableDataset
 from src.preprocesses.preprocess import unk_idx_list
-from src.vocab import AsmVocab
+from src.preprocesses.vocab import AsmVocab
 
 
-class CBowDatasetBuilder:
+class PVDMDatasetBuilder:
 
     def __init__(self, vocab: AsmVocab):
         self.vocab = vocab
@@ -21,8 +23,12 @@ class CBowDatasetBuilder:
         # convert each func into a sequence of training data
         for func_id, stmts in enumerate(corpus.idx2ins):
             per_doc = []
-            for word, context in _make_one_doc(stmts, window):
-                per_doc.append((func_id, word, context))
+            for word, context in make_one_doc(stmts, window):
+                per_doc.append((
+                    torch.tensor(func_id),
+                    torch.tensor(word),
+                    torch.tensor(context)
+                ))
             if per_doc:
                 self.data.append(per_doc)
 
@@ -77,7 +83,7 @@ def sync_corpus(train_corpus: Corpus, query_corpus: Corpus):
     return sync(train_corpus), sync(query_corpus)
 
 
-def _make_one_doc(insts, window):
+def make_one_doc(insts, window):
     n_insts = len(insts)
     for i, inst in enumerate(insts):
         prev_inst = insts[i - 1][:window] if i > 0 else []

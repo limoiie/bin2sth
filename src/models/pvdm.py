@@ -32,7 +32,6 @@ class FuncEmbedding(torch.nn.Module):
         return data.to(self.idx2vec.weight.device)
 
 
-# noinspection PyArgumentList
 class CBowPVDM(UnSupervisedModule):
 
     logger = get_logger('CBowPVDM')
@@ -91,7 +90,7 @@ class CBowPVDM(UnSupervisedModule):
 
     def __neg_sample_in_uniform(self, batch_size):
         # NOTE: I modify [0, vocab_size-1] to [1, vocab_size]
-        return torch.FloatTensor(batch_size, self.n_negs) \
+        return torch.zeros(batch_size, self.n_negs) \
             .uniform_(1, self.vocab_size).long()
 
 
