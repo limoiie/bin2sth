@@ -32,5 +32,6 @@ class NMTInsDataEnd:
                 zip(self.corpus1.idx2doc, self.corpus2.idx2doc)):
             self.data.append([
                 torch.tensor(self.corpus1.idx2ins[i]),
-                torch.tensor(self.corpus2.idx2ins[i])])
+                torch.tensor(self.corpus2.idx2ins[i])
+            ])
             self.label.append(1 if doc1 == doc2 else 0)
