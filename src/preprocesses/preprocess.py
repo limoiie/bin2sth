@@ -220,7 +220,7 @@ class PpVocab(Pp):
 
 # depends on PpMergeFuncs
 class PpCorpus(Pp):
-    def __init__(self, builder=CorpusBuilder()):
+    def __init__(self, builder):
         self.builder = builder
         self.builder.reset()
 

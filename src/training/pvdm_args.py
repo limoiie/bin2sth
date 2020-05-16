@@ -1,5 +1,3 @@
-import copy
-
 from src.database.program_dao import BinArgs
 
 from src.ida.as_json import AsJson, load_json_file

@@ -8,6 +8,7 @@ from src.dataset.genn_ufe_dataset import GENNDatasetBuilder
 from src.dataset.word2vec_datset import Word2VecDatasetBuilder
 from src.preprocesses.cfg_corpus import CfgCorpusBuilder
 from src.dataset.nmt_inspired_dataset import NMTInsDataEnd
+from src.preprocesses.corpus import CorpusBuilder
 from src.preprocesses.preprocess import BinBag
 
 
@@ -38,7 +39,7 @@ def load_corpus(db, args: BinArgs, vocab):
         pp.PpTokenizer().as_map(),
         pp.PpOneHotEncoder(vocab).as_map(),
         pp.PpMergeFuncs().as_map(),
-        pp.PpCorpus().as_map()
+        pp.PpCorpus(CorpusBuilder()).as_map()
     ).run().corpus.run()
 
 
@@ -76,15 +77,17 @@ def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen, minlen=5):
     (body) size.
     """
     progs = load_progs_jointly(db, args)
-    return rx.just(BinBag(progs)).pipe(
+    bb = BinBag(progs)
+    bb = rx.just(bb).pipe(
         pp.PpFullLabel().as_map(),
         pp.PpMergeBlocks().as_map(),
         pp.PpFilterFunc(minlen=minlen).as_map(),
         pp.PpOneHotEncoder(vocab).as_map(),
         pp.PpPadding(maxlen, 0).as_map(),
         pp.PpMergeFuncs().as_map(),
-        pp.PpCorpus().as_map()
-    ).run().corpus.run()
+        pp.PpCorpus(CorpusBuilder()).as_map()
+    ).run()
+    return bb.corpus.run()
 
 
 def load_word2vec_data(db, vocab_args, corpus_args, window, ss):
