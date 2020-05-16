@@ -30,7 +30,7 @@
     "obfs": [
     ]
   },
-  "corpus": {
+  "base_corpus": {
     "progs": [
       "tmp_prog"
     ],
@@ -56,7 +56,7 @@
     "obfs": [
     ]
   },
-  "query": {
+  "find_corpus": {
     "archs": [
       {
         "type": "arm",

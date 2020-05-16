@@ -13,12 +13,11 @@ import sys; sys.path.append(['/Users/ligengwang/Projects/pycharm/bin2sth']); imp
 - Dataset
   - vocab: `BinArg`
   - corpus: `BinArg`
-  - setting:
-    - i.e. window, sub-sampling
 - Model
   - Dataset
   - Model Setting
-    - i.e. n_emb, n_hdn
+    - i.e. model: n_emb, n_hdn
+    - i.e. config: window, sub-sampling
   - Runtime Setting
     - i.e. epoch, lr
 - Result
@@ -43,4 +42,4 @@ args as the key to store or load corresponding data, model and results.
     the network size
     - Runtime Args: args that control the training process
 - Result Args 
-  - Model Args
+  - Train Args
