@@ -8,7 +8,7 @@ from ignite.metrics import RunningAverage, Loss
 from torch.optim import Adam
 
 from src.database.database import get_database_client, load_nmt_data_end
-from src.dataset import get_data_loaders
+from src.dataset.dataset import get_data_loaders
 from src.models import safe
 from src.models.metrics.atten_cosine_mse_loss import AttenPenaltyLoss
 from src.models.metrics.siamese_loss import SiameseLoss

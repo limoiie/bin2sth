@@ -1,6 +1,6 @@
 import torch
 
-from src.corpus import Corpus
+from src.preprocesses.corpus import Corpus
 
 
 class VocabWrapper:

@@ -1,3 +1,4 @@
+from src.ida.code_elements import Function
 from src.utils.logger import get_logger
 
 
@@ -32,7 +33,8 @@ class CorpusBuilder:
         self.corpus.idx2ins = []
         self.corpus.n_docs = 0
 
-    def scan(self, doc, stmts):
+    def scan(self, fun: Function):
+        doc, stmts = fun.label, fun.stmts
         self.corpus.idx2doc.append(doc)
         self.corpus.doc2idx[doc] = self.corpus.n_docs
         self.corpus.idx2ins.append(stmts)

@@ -5,11 +5,14 @@ from typing import Iterable, Optional, List
 import rx
 from rx import operators as ops, Observable
 
+import numpy as np
+
 import src.utils.rx.operators as ops_
-from src.corpus import CorpusBuilder
+from src.preprocesses.corpus import CorpusBuilder
 from src.ida.code_elements import Program, Function, Block
 from src.utils.logger import get_logger
-from src.vocab import AsmVocabBuilder
+from src.preprocesses.vocab import AsmVocabBuilder
+from src.utils.rx.internal.basic import second
 
 logger = get_logger('preprocess')
 
@@ -113,10 +116,12 @@ class PpFilterFunc(Pp):
         self.minlen = minlen
 
     def p_funs(self, funs: Observable, prog: Program) -> Observable:
+        def count(fun):
+            return sum(map(lambda b: len(b.src), fun.blocks)), fun
         return funs.pipe(
-            ops.map(lambda fun: (len(fun.stmts), fun)),
+            ops.map(count),
             ops.filter(lambda cf: cf[0] >= self.minlen),
-            ops.map(lambda cf: cf[1])
+            ops.map(second)
         )
 
 
@@ -162,6 +167,23 @@ class PpOutStmts(Pp):
         return bag
 
 
+# insert <cfg_adj> into :class Function
+# insert <stmts_list> into :class Function
+class PpCfgAdj(Pp):
+    """
+    Extract a list of block stmts and construct the adj matrix from cfg
+    """
+    def p_fun(self, fun: Function, prog: Program) -> Optional[Function]:
+        n = len(fun.blocks)
+        fun.cfg_adj = np.zeros((n, n), dtype=float)
+        blk2idx = {blk.label: i for i, blk in enumerate(fun.blocks)}
+        for from_, to_s_ in fun.cfg.items():
+            for to_ in to_s_:
+                fun.cfg_adj[blk2idx[from_]][blk2idx[to_]] = 1.0
+        fun.stmts_list = [blk.src for blk in fun.blocks]
+        return fun
+
+
 # depends on PpMergeBlocks ==> PpMergeProgs
 class PpPadding(Pp):
     def __init__(self, maxlen, ph):
@@ -196,14 +218,15 @@ class PpVocab(Pp):
         return bag
 
 
+# depends on PpMergeFuncs
 class PpCorpus(Pp):
-    def __init__(self):
-        self.builder = CorpusBuilder()
+    def __init__(self, builder=CorpusBuilder()):
+        self.builder = builder
         self.builder.reset()
 
     def p(self, bag: BinBag) -> BinBag:
         bag.corpus = bag.funcs.pipe(
-            ops_.tap(lambda f: self.builder.scan(f.label, f.stmts)),
+            ops_.tap(self.builder.scan),
             ops_.end_act(self.builder.build)
         )
         return bag

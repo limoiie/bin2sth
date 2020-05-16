@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from src.utils.logger import get_logger
-from src.corpus import Corpus
+from src.preprocesses.corpus import Corpus
 from src.evaluating.vectorspace import CorpusWrapper, VocabWrapper
 
 
