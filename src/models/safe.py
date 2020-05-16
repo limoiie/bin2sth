@@ -27,10 +27,11 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
 from src.models.model import layer_trainable
+from src.training.safe_args import SAFEArgs
 
 
 class SAFE(nn.Module):
-    def __init__(self, config, vocab_size, embedding):
+    def __init__(self, config: SAFEArgs, vocab_size, embedding):
         super(SAFE, self).__init__()
 
         self.conf = config
@@ -39,13 +40,13 @@ class SAFE(nn.Module):
         #     self.conf.num_embeddings, self.conf.embedding_size
         # )
         self.instructions_embeddings = torch.nn.Embedding(
-            vocab_size, self.conf.embedding_size, 
+            vocab_size, self.conf.n_emb,
             _weight=embedding.clone().detach())
         layer_trainable(self.instructions_embeddings, False)
 
         self.bidirectional_rnn = torch.nn.GRU(
-            input_size=self.conf.embedding_size,
-            hidden_size=self.conf.rnn_state_size,
+            input_size=self.conf.n_emb,
+            hidden_size=self.conf.n_rnn_state,
             num_layers=self.conf.rnn_depth,
             bias=True,
             batch_first=True,
@@ -54,19 +55,19 @@ class SAFE(nn.Module):
         )
 
         self.WS1 = Parameter(
-            torch.empty(self.conf.attention_depth, 2 * self.conf.rnn_state_size)
+            torch.empty(self.conf.atten_depth, 2 * self.conf.n_rnn_state)
         )
         self.WS2 = Parameter(
-            torch.empty(self.conf.attention_hops, self.conf.attention_depth)
+            torch.empty(self.conf.atten_hops, self.conf.atten_depth)
         )
 
         self.dense_1 = torch.nn.Linear(
-            2 * self.conf.attention_hops * self.conf.rnn_state_size,
-            self.conf.dense_layer_size,
+            2 * self.conf.atten_hops * self.conf.n_rnn_state,
+            self.conf.n_dense_layer,
             bias=True,
         )
         self.dense_2 = torch.nn.Linear(
-            self.conf.dense_layer_size, self.conf.embedding_size, bias=True
+            self.conf.n_dense_layer, self.conf.n_emb, bias=True
         )
 
     def forward(self, instructions):
@@ -103,7 +104,7 @@ class SAFE(nn.Module):
 
         # we create the flattened version of M
         flattened_M = M.view(
-            -1, 2 * self.conf.attention_hops * self.conf.rnn_state_size
+            -1, 2 * self.conf.atten_hops * self.conf.n_rnn_state
         )
         # -> batch_size * (attn_hops * n_emb), where n_emb == 2 * rnn_state_size
 
@@ -111,20 +112,3 @@ class SAFE(nn.Module):
         function_embedding = F.normalize(self.dense_2(dense_1_out), dim=1, p=2)
 
         return function_embedding, A.mean(dim=0)
-
-
-class Config:
-    def __init__(self):
-        self.embedding_size = 100  # dimension of the function embedding
-
-        # RNN PARAMETERS, these parameters are only used for RNN model.
-        self.rnn_state_size = 50  # dimesion of the rnn state
-        self.rnn_depth = 1  # depth of the rnn
-        self.max_instructions = 150  # number of instructions
-
-        # ATTENTION PARAMETERS
-        self.attention_hops = 10
-        self.attention_depth = 250
-
-        # RNN SINGLE PARAMETER
-        self.dense_layer_size = 2000

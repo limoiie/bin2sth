@@ -9,14 +9,14 @@ from torch.optim import Adam
 
 from src.database.database import get_database_client, load_nmt_data_end
 from src.dataset.dataset import get_data_loaders
-from src.models import safe
 from src.models.metrics.atten_cosine_mse_loss import AttenPenaltyLoss
 from src.models.metrics.siamese_loss import SiameseLoss
 from src.models.metrics.siamese_metric import SiameseMetric
 from src.models.safe import SAFE
 from src.training.build_engine import create_supervised_siamese_trainer, \
     create_supervised_siamese_evaluator
-from src.training.pvdm_args import ModelArgs, parse_eval_file
+from src.training.safe_args import SAFEArgs
+from src.training.train_args import prepare_args
 from src.training.training import attach_stages
 from src.utils.logger import get_logger
 
@@ -28,38 +28,36 @@ embedding_weights = \
     f'{tmp_folder}/100D_MinWordCount0_downSample1e-5_trained100epoch_L.w2v'
 
 
-def train(cuda, data_args, **model_args):
+def train(cuda, data_args, epochs, n_batch, init_lr, **model_args):
     cuda = None if cuda < 0 else cuda
     client = get_database_client()
     db = client.test_database
-    rt = ModelArgs(**model_args)
-    do_training(cuda, data_args, db, rt)
+    args = prepare_args(
+        data_args, epochs, n_batch, init_lr, SAFEArgs, **model_args)
+    do_training(cuda, db, args)
     client.close()
 
 
-def do_training(cuda, data_args, db, rt):
-    config = safe.Config()
-
-    vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
+def do_training(cuda, db, a):
     # todo: load safe dataset
     data_end = load_nmt_data_end(
-        db, vocab_args, train_corpus, query_corpus, config.max_instructions)
+        db, a.ds.vocab, a.ds.base_corpus, a.ds.find_corpus, a.m.max_seq_len)
 
     # Load a trained w2v model
     w2v = models.Word2Vec.load(embedding_weights)
     # this is used to map word in text into one-hot encoding
-    embeddings = _make_embedding(data_end.vocab.tkn2idx, rt.n_emb, w2v)
+    embeddings = _make_embedding(data_end.vocab.tkn2idx, a.m.n_emb, w2v)
     embeddings = embeddings.cuda(device=cuda) if cuda else embeddings
 
     data, label = data_end.data, t.tensor(data_end.label, dtype=t.float32)
 
-    model = SAFE(config, data_end.vocab.size, embeddings)
+    model = SAFE(a.m, data_end.vocab.size, embeddings)
 
-    train_optim = Adam(model.parameters(), lr=rt.init_lr)
+    train_optim = Adam(model.parameters(), lr=a.rt.init_lr)
     core_loss_fn = SiameseLoss(F.cosine_similarity, t.nn.MSELoss())
     loss_fn = AttenPenaltyLoss(core_loss_fn)
 
-    ds, ds_val, ds_test = get_data_loaders(data, label, rt.n_batch)
+    ds, ds_val, ds_test = get_data_loaders(data, label, a.rt.n_batch)
 
     trainer = create_supervised_siamese_trainer(
         model, train_optim, loss_fn, device=cuda)
@@ -77,7 +75,7 @@ def do_training(cuda, data_args, db, rt):
     pbar = ProgressBar()
     pbar.attach(trainer, ['batch_loss'])
 
-    trainer.run(ds, max_epochs=rt.epochs)
+    trainer.run(ds, max_epochs=a.rt.epochs)
 
 
 def out_transform_for_safe(_x, y, o):
