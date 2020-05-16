@@ -28,7 +28,8 @@ from src.models.metrics.siamese_metric import SiameseMetric
 from src.models.nmt_inspired import NMTInspiredModel
 from src.training.build_engine import create_supervised_siamese_trainer, \
     create_supervised_siamese_evaluator
-from src.training.pvdm_args import parse_eval_file, ModelArgs
+from src.training.nmt_inspired_args import NMTInspiredArgs
+from src.training.train_args import prepare_args
 from src.training.training import attach_stages
 from src.utils.logger import get_logger
 
@@ -36,54 +37,39 @@ logger = get_logger('training')
 
 tmp_folder = 'src/training/.tmp/nmt_inspired'
 
-# TRAIN_CSV = f'{tmp_folder}/train_set_O2.csv'
-# TEST_CSV = f'{tmp_folder}/test_set_O2.csv'
-
 # saved_weights = f'{tmp_folder}/siamese_model_100DW2V_2HL_50HU_O2.ourown.hdf5'
 embedding_weights = \
     f'{tmp_folder}/100D_MinWordCount0_downSample1e-5_trained100epoch_L.w2v'
 
-# Inpute size
-max_seq_length = 101
-n_lstm_hidden = 64
+
+def train(cuda, data_args, epochs, n_batch, init_lr, **model_args):
+    cuda = None if cuda < 0 else cuda
+    client = get_database_client()
+    db = client.test_database
+    args = prepare_args(
+        data_args, epochs, n_batch, init_lr, NMTInspiredArgs, **model_args)
+    do_training(cuda, db, args)
+    client.close()
 
 
-def train(training):
-    # TODO: implement query
-    work = do_training if training else do_training
-
-    def proxy(cuda, arg_file, **model_args):
-        cuda = cuda if cuda >= 0 else None
-        client = get_database_client()
-        db = client.test_database
-        rt = ModelArgs(**model_args)
-        work(cuda, arg_file, db, rt)
-        client.close()
-    return proxy
-
-
-def do_training(cuda, data_args, db, rt):
-    vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
+def do_training(cuda, db, a):
     data_end = load_nmt_data_end(
-        db, vocab_args, train_corpus, query_corpus, max_seq_length)
+        db, a.ds.vocab, a.ds.base_corpus, a.ds.find_corpus, a.m.max_seq_len)
 
     # Load a trained w2v model
     w2v = models.Word2Vec.load(embedding_weights)
     # this is used to map word in text into one-hot encoding
-    embeddings = _make_embedding(data_end.vocab.tkn2idx, rt.n_emb, w2v)
+    embeddings = _make_embedding(data_end.vocab.tkn2idx, a.m.n_emb, w2v)
     embeddings = embeddings.cuda(device=cuda) if cuda else embeddings
 
-    # l_data = t.tensor(data_end.data[0], dtype=t.long, device=cuda)
-    # r_data = t.tensor(data_end.data[1], dtype=t.long, device=cuda)
-    # data = t.tensor(data_end.data, dtype=t.long, device=cuda)
     data, label = data_end.data, t.tensor(data_end.label, dtype=t.float32)
 
-    model = NMTInspiredModel(data_end.vocab.size, rt.n_emb,
-                             embeddings, max_seq_length, n_lstm_hidden)
-    optim = Adam(model.parameters(), lr=rt.init_lr)
+    model = NMTInspiredModel(data_end.vocab.size, a.m.n_emb,
+                             embeddings, a.m.max_seq_len, a.m.n_lstm_hidden)
+    optim = Adam(model.parameters(), lr=a.rt.init_lr)
     loss_fn = SiameseLoss(sim_fn, t.nn.MSELoss())
 
-    ds, ds_val, ds_test = get_data_loaders(data, label, rt.n_batch)
+    ds, ds_val, ds_test = get_data_loaders(data, label, a.rt.n_batch)
 
     trainer = create_supervised_siamese_trainer(
         model, optim, loss_fn, device=cuda)
@@ -103,7 +89,7 @@ def do_training(cuda, data_args, db, rt):
     pbar = ProgressBar()
     pbar.attach(trainer, ['batch_loss'])
 
-    trainer.run(ds, max_epochs=rt.epochs)
+    trainer.run(ds, max_epochs=a.rt.epochs)
 
 
 def sim_fn(o1, o2):
@@ -129,7 +115,4 @@ def _make_embedding(vocabulary, n_emb, model):
 
 
 if __name__ == '__main__':
-    fire.Fire({
-        'train': train(True),
-        'query': train(False)
-    })
+    fire.Fire(train)
