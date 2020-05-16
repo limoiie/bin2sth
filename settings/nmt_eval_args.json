@@ -4,13 +4,17 @@
       "tmp_prog"
     ],
     "prog_vers": [
-      ["0.1"]
+      [
+        "0.1"
+      ]
     ],
     "ccs": [
       "gcc"
     ],
     "cc_vers": [
-      ["5"]
+      [
+        "5"
+      ]
     ],
     "archs": [
       {
@@ -27,21 +31,24 @@
     "opts": [
       "O3"
     ],
-    "obfs": [
-    ]
+    "obfs": []
   },
   "base_corpus": {
     "progs": [
       "tmp_prog"
     ],
     "prog_vers": [
-      ["0.1"]
+      [
+        "0.1"
+      ]
     ],
     "ccs": [
       "gcc"
     ],
     "cc_vers": [
-      ["5"]
+      [
+        "5"
+      ]
     ],
     "archs": [
       {
@@ -53,8 +60,7 @@
     "opts": [
       "O3"
     ],
-    "obfs": [
-    ]
+    "obfs": []
   },
   "find_corpus": {
     "archs": [
