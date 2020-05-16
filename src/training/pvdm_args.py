@@ -3,6 +3,7 @@ import copy
 from src.database.program_dao import BinArgs
 
 from src.ida.as_json import AsJson, load_json_file
+from src.utils.json_utils import json_update
 
 
 class ModelArgs(AsJson):
@@ -15,6 +16,18 @@ class ModelArgs(AsJson):
         self.init_lr = init_lr
         self.no_hdn = no_hdn
         self.ss, self.window = ss, window
+
+
+class PVDMArgs(AsJson):
+    def __init__(self, n_emb, n_negs, no_hdn, ss, window):
+        # network configs
+        self.n_emb = n_emb
+        self.n_negs = n_negs
+        self.no_hdn = no_hdn
+
+        # dataset configs
+        self.ss = ss
+        self.window = window
 
 
 class TrainArgs(AsJson):
@@ -54,12 +67,6 @@ def parse_data_file(data_args_file):
     vocab_args = AsJson.from_dict(BinArgs, args['vocab'])
     train_corpus_args = AsJson.from_dict(BinArgs, args['corpus'])
     return vocab_args, train_corpus_args
-
-
-def json_update(src, delta):
-    src = copy.copy(src)
-    src.update(delta)
-    return src
 
 
 def parse_eval_file(data_args_file):

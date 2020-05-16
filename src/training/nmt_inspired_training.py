@@ -22,7 +22,7 @@ from ignite.metrics import Loss, RunningAverage
 from torch.optim import Adam
 
 from src.database.database import get_database_client, load_nmt_data_end
-from src.dataset import get_data_loaders
+from src.dataset.dataset import get_data_loaders
 from src.models.metrics.siamese_loss import SiameseLoss
 from src.models.metrics.siamese_metric import SiameseMetric
 from src.models.nmt_inspired import NMTInspiredModel

@@ -26,6 +26,9 @@ class GENNBasedModel(t.nn.Module):
         self.W1 = Parameter(t.empty(1, n_emb, n_hidden))  # 1 for batch dim
         self.W2 = Parameter(t.empty(1, n_hidden, n_hidden))
 
+    # todo: refactor so that
+    #  - receive block feature instead of raw instructions
+    #  - remove b2v model
     def forward(self, insts, adj_m):
         """
         Embedding a function by using the provided block-level feature and
