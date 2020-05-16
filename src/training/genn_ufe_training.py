@@ -15,22 +15,10 @@ which is the official implement of zuo2019neural.
 
 import fire
 import torch as t
-from gensim import models
-from ignite.contrib.handlers import ProgressBar
-from ignite.contrib.metrics import ROC_AUC
-from ignite.metrics import Loss, RunningAverage
-from torch.optim import Adam
 
-from src.database.database import get_database_client, load_nmt_data_end, \
-    load_genn_ufe_data
-from src.dataset.dataset import get_data_loaders
-from src.models.metrics.siamese_loss import SiameseLoss
-from src.models.metrics.siamese_metric import SiameseMetric
-from src.models.nmt_inspired import NMTInspiredModel
-from src.training.build_engine import create_supervised_siamese_trainer, \
-    create_supervised_siamese_evaluator
-from src.training.pvdm_args import parse_eval_file, ModelArgs
-from src.training.training import attach_stages
+from src.database.database import get_database_client, load_genn_ufe_data
+from src.training.genn_ufe_args import GENNArgs
+from src.training.train_args import prepare_args
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
@@ -44,24 +32,20 @@ tmp_folder = 'src/training/.tmp/nmt_inspired'
 embedding_weights = \
     f'{tmp_folder}/100D_MinWordCount0_downSample1e-5_trained100epoch_L.w2v'
 
-# Inpute size
-max_seq_length = 101
-n_lstm_hidden = 64
 
-
-def train(cuda, arg_file, **model_args):
-    cuda = cuda if cuda >= 0 else None
+def train(cuda, data_args, epochs, n_batch, init_lr, **model_args):
+    cuda = None if cuda < 0 else cuda
     client = get_database_client()
     db = client.test_database
-    rt = ModelArgs(**model_args)
-    do_training(cuda, arg_file, db, rt)
+    args = prepare_args(
+        data_args, epochs, n_batch, init_lr, GENNArgs, **model_args)
+    do_training(cuda, db, args)
     client.close()
 
 
-def do_training(cuda, data_args, db, rt):
-    vocab_args, train_corpus, query_corpus = parse_eval_file(data_args)
+def do_training(cuda, db, a):
     vocab, corpus1, corpus2, train_ds = load_genn_ufe_data(
-        db, vocab_args, train_corpus, query_corpus)
+        db, a.ds.vocab, a.ds.base_corpus, a.ds.find_corpus)
 
     from IPython import embed; embed()
     # todo:
