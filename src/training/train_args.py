@@ -1,49 +1,48 @@
 from src.database.program_dao import BinArgs
-from src.ida.as_json import AsJson
-from src.utils.json_utils import json_update, load_json_file
+from src.utils.auto_json import auto_json, AutoJson
+from src.utils.json_utils import obj_update
 
 
-class DatasetArgs(AsJson):
+@auto_json
+class DatasetArgs:
     vocab: BinArgs
     base_corpus: BinArgs
     find_corpus: BinArgs
 
-    def __init__(self, vocab, base_corpus, find_corpus):
+    def __init__(self, vocab=None, base_corpus=None, find_corpus=None):
         self.vocab = vocab
         self.base_corpus = base_corpus
         self.find_corpus = find_corpus
 
 
-class RuntimeArgs(AsJson):
+@auto_json
+class RuntimeArgs:
 
-    def __init__(self, epochs, n_batch, init_lr):
+    def __init__(self, epochs=None, n_batch=None, init_lr=None):
         self.epochs = epochs
         self.n_batch = n_batch
         self.init_lr = init_lr
 
 
-class TrainArgs(AsJson):
+@auto_json
+class TrainArgs:
     """
     Used to identify model and training results, such as loss and metrics
     """
     rt: RuntimeArgs
 
-    def __init__(self, dataset_args, runtime_args, model_args):
+    def __init__(self, dataset_args=None, runtime_args=None, model_args=None):
         self.ds = dataset_args
         self.rt: RuntimeArgs = runtime_args
         self.m = model_args
 
 
 def parse_dataset_args_from_file(file):
-    args = load_json_file(file)
-    vocab = AsJson.from_dict(BinArgs, args['vocab'])
-    base_corpus = AsJson.from_dict(BinArgs, args['base_corpus'])
-    find_corpus = base_corpus
-    if 'find_corpus' in args:
-        args['find_corpus'] = json_update(
-            args['base_corpus'], args['find_corpus'])
-        find_corpus = AsJson.from_dict(BinArgs, args['find_corpus'])
-    return DatasetArgs(vocab, base_corpus, find_corpus)
+    args: DatasetArgs = AutoJson.load(file)
+    if not args.find_corpus:
+        args.find_corpus = args.base_corpus
+    obj_update(args.base_corpus, args.find_corpus)
+    return args
 
 
 def prepare_args(data_args, epochs, n_batch, init_lr, ModelArg, **model_args):

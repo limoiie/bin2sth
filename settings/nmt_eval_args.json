@@ -1,5 +1,7 @@
 {
+  "@": "DatasetArgs",
   "vocab": {
+    "@": "BinArgs",
     "progs": [
       "tmp_prog"
     ],
@@ -18,11 +20,13 @@
     ],
     "archs": [
       {
+        "@": "Arch",
         "type": "x86",
         "bits": "b32",
         "endian": "be"
       },
       {
+        "@": "Arch",
         "type": "arm",
         "bits": "b32",
         "endian": "be"
@@ -34,6 +38,7 @@
     "obfs": []
   },
   "base_corpus": {
+    "@": "BinArgs",
     "progs": [
       "tmp_prog"
     ],
@@ -52,6 +57,7 @@
     ],
     "archs": [
       {
+        "@": "Arch",
         "type": "x86",
         "bits": "b32",
         "endian": "be"
@@ -63,8 +69,10 @@
     "obfs": []
   },
   "find_corpus": {
+    "@": "BinArgs",
     "archs": [
       {
+        "@": "Arch",
         "type": "arm",
         "bits": "b32",
         "endian": "be"

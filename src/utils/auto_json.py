@@ -2,7 +2,7 @@ import copy
 import json
 
 
-_json_cls_key = '__origin_cls__'
+_json_cls_key = '@'
 
 
 class _Register:
@@ -11,6 +11,7 @@ class _Register:
 
 
 def auto_json(cls):
+    assert cls.__name__ not in _Register.id_cls
     _Register.id_cls[cls.__name__] = cls
     _Register.cls_id[cls] = cls.__name__
     return cls

@@ -1,11 +1,14 @@
 from typing import List
 
+from src.utils.auto_json import auto_json
+
 try:
     from as_json import AsJson
 except ImportError:
     from src.ida.as_json import AsJson
 
 
+@auto_json
 class Arch(AsJson):
     def __init__(self, typ=None, bits=None, endian=None):
         self.type = typ

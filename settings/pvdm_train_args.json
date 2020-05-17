@@ -1,64 +1,69 @@
 {
-    "vocab": {
-        "progs": [
-            "lua"
-        ],
-        "prog_vers": [
-            [
-                "5.2.3"
-            ]
-        ],
-        "ccs": [
-            "gcc"
-        ],
-        "cc_vers": [
-            [
-                "7"
-            ]
-        ],
-        "archs": [
-            {
-                "type": "metapc",
-                "bits": "b32",
-                "endian": "le"
-            }
-        ],
-        "opts": [
-            "O0"
-        ],
-        "obfs": [
-            "none"
-        ]
-    },
-    "base_corpus": {
-        "progs": [
-            "lua"
-        ],
-        "prog_vers": [
-            [
-                "5.2.3"
-            ]
-        ],
-        "ccs": [
-            "gcc"
-        ],
-        "cc_vers": [
-            [
-                "7"
-            ]
-        ],
-        "archs": [
-            {
-                "type": "metapc",
-                "bits": "b32",
-                "endian": "le"
-            }
-        ],
-        "opts": [
-            "O0"
-        ],
-        "obfs": [
-            "none"
-        ]
-    }
+  "@": "DatasetArgs",
+  "vocab": {
+    "@": "BinArgs",
+    "progs": [
+      "lua"
+    ],
+    "prog_vers": [
+      [
+        "5.2.3"
+      ]
+    ],
+    "ccs": [
+      "gcc"
+    ],
+    "cc_vers": [
+      [
+        "7"
+      ]
+    ],
+    "archs": [
+      {
+        "@": "Arch",
+        "type": "metapc",
+        "bits": "b32",
+        "endian": "le"
+      }
+    ],
+    "opts": [
+      "O0"
+    ],
+    "obfs": [
+      "none"
+    ]
+  },
+  "base_corpus": {
+    "@": "BinArgs",
+    "progs": [
+      "lua"
+    ],
+    "prog_vers": [
+      [
+        "5.2.3"
+      ]
+    ],
+    "ccs": [
+      "gcc"
+    ],
+    "cc_vers": [
+      [
+        "7"
+      ]
+    ],
+    "archs": [
+      {
+        "@": "Arch",
+        "type": "metapc",
+        "bits": "b32",
+        "endian": "le"
+      }
+    ],
+    "opts": [
+      "O0"
+    ],
+    "obfs": [
+      "none"
+    ]
+  }
 }

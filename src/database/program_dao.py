@@ -5,6 +5,7 @@ from gridfs import GridFS
 from src.database.dao import Dao
 from src.ida.as_json import AsJson
 from src.ida.code_elements import Program, Arch
+from src.utils.auto_json import auto_json
 from src.utils.collection_op import strip_dict
 from src.utils.list_joint import flat, joint_list
 
@@ -42,6 +43,7 @@ class ProgramDAO(Dao):
         return AsJson.from_dict(Program, prog)
 
 
+@auto_json
 class BinArgs(AsJson):
     archs: List[Arch]
 
