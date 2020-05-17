@@ -1,4 +1,3 @@
-import copy
 import inspect
 import json
 
@@ -9,8 +8,8 @@ class AsJson(object):
     def __getitem__(self, item):
         return getattr(self, item)
 
-    def dict(self):
-        return AsJson.to_dict(self)
+    def dict(self, _=True):
+        return AsJson.to_dict(self, _)
 
     @staticmethod
     def dump(file, obj):
@@ -35,7 +34,11 @@ class AsJson(object):
             return AsJson.from_dict(cls, js)
 
     @staticmethod
-    def to_dict(obj):
+    def to_dict(obj, _=True):
+        """
+        :param obj: object to be dicted
+        :param _ compatible with AutoJson.to_dict
+        """
         if issubclass(obj.__class__, AsJson):
             return AsJson.to_dict(obj.__dict__)
 

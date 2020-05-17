@@ -4,7 +4,13 @@ from gridfs import GridFS
 from pymongo.collection import Collection
 from pymongo.database import Database
 
+from src.utils.collection_op import strip_dict
+
 encoding = 'utf-8'
+
+
+def to_filter(bean):
+    return strip_dict(bean.dict(with_cls=False))
 
 
 class Dao:

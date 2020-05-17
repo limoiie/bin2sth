@@ -1,6 +1,6 @@
 import copy
 import json
-
+from typing import Type
 
 _json_cls_key = '@'
 
@@ -10,11 +10,16 @@ class _Register:
     cls_id = {}
 
 
-def auto_json(cls):
+def auto_json(cls: Type):
     assert cls.__name__ not in _Register.id_cls
-    _Register.id_cls[cls.__name__] = cls
-    _Register.cls_id[cls] = cls.__name__
-    return cls
+
+    class Cls(cls):
+        def dict(self, with_cls=True):
+            return AutoJson.to_dict(self, with_cls)
+    Cls.__name__ = cls.__name__
+    _Register.id_cls[Cls.__name__] = Cls
+    _Register.cls_id[Cls] = Cls.__name__
+    return Cls
 
 
 class AutoJson(object):
@@ -48,18 +53,19 @@ class AutoJson(object):
             return AutoJson.from_dict(js)
 
     @staticmethod
-    def to_dict(obj):
+    def to_dict(obj, with_cls=True):
         if obj.__class__ in _Register.cls_id:
             dic = copy.deepcopy(obj.__dict__)
-            dic[_json_cls_key] = obj.__class__.__name__
-            return AutoJson.to_dict(dic)
+            if with_cls:
+                dic[_json_cls_key] = obj.__class__.__name__
+            return AutoJson.to_dict(dic, with_cls)
 
         cls = type(obj)
         if cls in [list, set]:
-            return [AutoJson.to_dict(v) for v in obj]
+            return [AutoJson.to_dict(v, with_cls) for v in obj]
         if cls is dict:
             return {
-                AutoJson.to_dict(k): AutoJson.to_dict(v)
+                AutoJson.to_dict(k, with_cls): AutoJson.to_dict(v, with_cls)
                 for k, v in obj.items()
             }
 

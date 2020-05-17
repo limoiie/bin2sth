@@ -1,5 +1,8 @@
 from typing import List
 
+from gridfs import GridFS
+
+from src.database.train_args_dao import TrainArgDAO
 from src.ida.code_elements import Arch
 from src.utils.auto_json import auto_json, AutoJson
 from src.utils.json_utils import obj_update
@@ -70,17 +73,19 @@ class TrainArgs:
         return str(self.__dict__)
 
 
-def wrap_dataset_args(args):
+def adjust_dataset_args(args):
     if not args.find_corpus:
         args.find_corpus = args.base_corpus
     obj_update(args.base_corpus, args.find_corpus)
     return args
 
 
-def prepare_args(data_args, model_args, epochs, n_batch, init_lr):
+def prepare_args(db, data_args, model_args, epochs, n_batch, init_lr):
     # dataset args are loaded from file since they are too complex
     # to be passed through command line
-    ds_args = AutoJson.load(data_args)
-    m_args = AutoJson.load(model_args)
-    rt_args = RuntimeArgs(epochs, n_batch, init_lr)
-    return TrainArgs(wrap_dataset_args(ds_args), rt_args, m_args)
+    args = TrainArgs(
+        adjust_dataset_args(AutoJson.load(data_args)),
+        RuntimeArgs(epochs, n_batch, init_lr),
+        AutoJson.load(model_args))
+    dao = TrainArgDAO(db, GridFS(db))
+    dao.find_one()
