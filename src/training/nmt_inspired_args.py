@@ -1,9 +1,8 @@
-from src.ida.as_json import AsJson
 from src.utils.auto_json import auto_json
 
 
 @auto_json
-class NMTInspiredArgs(AsJson):
+class NMTInspiredArgs:
     def __init__(self, n_emb, max_seq_len, n_lstm_hidden):
         # network configs
         self.n_emb = n_emb

@@ -1,6 +1,5 @@
 from typing import List
 
-from src.ida.as_json import AsJson
 from src.ida.code_elements import Arch
 from src.utils.auto_json import auto_json, AutoJson
 from src.utils.json_utils import obj_update
@@ -8,7 +7,7 @@ from src.utils.list_joint import flat, joint_list
 
 
 @auto_json
-class BinArgs(AsJson):
+class BinArgs:
     archs: List[Arch]
 
     def __init__(self, progs=None, prog_vers=None, ccs=None, cc_vers=None,
