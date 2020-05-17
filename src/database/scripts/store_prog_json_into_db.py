@@ -4,7 +4,7 @@ import re
 import fire
 from gridfs import GridFS
 
-from src.database.database import get_database_client
+from src.database.database import get_database_client, get_database
 from src.database.program_dao import ProgramDAO
 from src.ida.as_json import AsJson
 from src.ida.code_elements import Program
@@ -14,7 +14,7 @@ logger = get_logger('store into db')
 
 
 def store_into_db(path):
-    db = get_database_client().test_database
+    db = get_database()
     if os.path.isfile(path):
         store_file_into_db(db, path)
         return

@@ -51,10 +51,11 @@ class TrainArgs:
     """
     rt: RuntimeArgs
 
-    def __init__(self, dataset_args=None, runtime_args=None, model_args=None):
-        self.ds = dataset_args
-        self.rt: RuntimeArgs = runtime_args
-        self.m = model_args
+    def __init__(self, ds_args=None, rt_args=None, m_args=None, tag='default'):
+        self.ds = ds_args
+        self.rt: RuntimeArgs = rt_args
+        self.m = m_args
+        self.tag = tag
 
 
 def wrap_dataset_args(args):

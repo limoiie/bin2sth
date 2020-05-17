@@ -1,14 +1,14 @@
 from gridfs import GridFS
 import pandas as pd
 
-from src.database.database import get_database_client
+from src.database.database import get_database
 from src.database.program_dao import ProgramDAO
 from src.ida.code_elements import Function, Block, Arch, Program
 
 
 tmp_folder = 'src/training/.tmp/nmt_inspired'
 
-db = get_database_client().test_database
+db = get_database()
 prog_dao = ProgramDAO(db, GridFS(db))
 
 

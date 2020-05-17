@@ -26,11 +26,8 @@ class ProgramDAO(Dao):
         super().__init__(db, fs, db.binaries, Program)
 
 
-def make_prog_filter(prog=None, prog_ver=None, cc=None, cc_ver=None, arch=None,
-                     opt=None, obf=None):
-    prog = Program(prog, prog_ver, cc, cc_ver, arch, opt, obf)
-    the_filter = prog.dict()
-    return strip_dict(the_filter)
+def make_prog_filter(**kwargs):
+    return strip_dict(Program(**kwargs).dict())
 
 
 def load_progs_jointly(db, args: BinArgs):

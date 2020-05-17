@@ -18,6 +18,10 @@ def get_database_client():
     return client
 
 
+def get_database():
+    return get_database_client().test_database
+
+
 def load_vocab(db, args: BinArgs):
     """Load the vocab where the word unit is operands/operators"""
     # TODO: cache into db

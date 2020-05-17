@@ -38,6 +38,10 @@ class Dao:
 
 
 class Adapter:
+    """
+    Adapter for beans to convert custom objects into and from what
+    language the db speaks
+    """
     __register = {}
 
     def wrap(self, dao, obj):
