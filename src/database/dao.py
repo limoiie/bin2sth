@@ -28,19 +28,30 @@ class Dao:
         return map(Adapter.unwrap_(self), self.col.find(filtor))
 
     def find_one(self, filtor):
-        return Adapter.unwrap_(self)(self.col.find_one(filtor))
+        o = self.col.find_one(filtor)
+        return Adapter.unwrap_(self)(o) if o else None
 
     def id(self, filtor):
         return map(lambda o: o['_id'], self.col.find(filtor))
 
     def id_one(self, filtor):
-        return self.col.find_one(filtor)['_id']
+        o = self.col.find_one(filtor)
+        return o['_id'] if o else None
 
     def store(self, objs):
         return self.col.insert_many(map(Adapter.wrap_(self), objs))
 
     def store_one(self, obj):
         return self.col.insert_one(Adapter.wrap_(self)(obj))
+
+    def find_or_store(self, key, obj):
+        o = self.find_one(key)
+        if not o:
+            _id = self.store_one(obj)
+            if not _id or not _id.inserted_id:
+                raise IOError(F'Failed to store the object: {obj}!')
+            o = self.find_one({'_id': _id.inserted_id})
+        return o
 
 
 class Adapter:

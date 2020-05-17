@@ -24,7 +24,6 @@ def get_database():
 
 def load_vocab(db, args: BinArgs):
     """Load the vocab where the word unit is operands/operators"""
-    # TODO: cache into db
     progs = load_progs_jointly(db, args)
     return rx.just(BinBag(progs)).pipe(
         pp.PpMergeBlocks().as_map(),
