@@ -6,29 +6,20 @@ from ignite.metrics import RunningAverage, TopKCategoricalAccuracy
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from src.database.database import get_database_client, load_pvdm_data
+from src.database.database import load_pvdm_data
 from src.models.modules.word2vec import Word2Vec
 from src.models.pvdm import CBowPVDM, FuncEmbedding, \
     doc_eval_transform, doc_eval_flatten_transform
 from src.training.build_engine import \
     create_unsupervised_trainer, create_unsupervised_training_evaluator
-from src.training.train_args import prepare_args
-from src.training.training import attach_unsupervised_evaluator
+from src.training.train_args import TrainArgs
+from src.training.training import attach_unsupervised_evaluator, train
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
 
 
-def train(cuda, data_args, model_args, epochs, n_batch, init_lr):
-    cuda = None if cuda < 0 else cuda
-    client = get_database_client()
-    db = client.test_database
-    args = prepare_args(data_args, model_args, epochs, n_batch, init_lr)
-    do_training(cuda, db, args)
-    client.close()
-
-
-def do_training(cuda, db, a):
+def do_training(cuda, db, a: TrainArgs):
     vocab, train_corpus, query_corpus, train_ds, query_ds = \
         load_pvdm_data(db, a.ds.vocab, a.ds.base_corpus, a.ds.find_corpus,
                        a.m.window, a.m.ss)
@@ -89,4 +80,4 @@ def _collect_fn(batch):
 
 
 if __name__ == "__main__":
-    fire.Fire(train)
+    fire.Fire(train(do_training))

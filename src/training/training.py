@@ -4,13 +4,15 @@ from src.database.database import get_database_client
 from src.training.train_args import prepare_args
 
 
-def train(fn_training, cuda, data_args, model_args, epochs, n_batch, init_lr):
-    cuda = None if cuda < 0 else cuda
-    client = get_database_client()
-    db = client.test_database
-    args = prepare_args(data_args, model_args, epochs, n_batch, init_lr)
-    fn_training(cuda, db, args)
-    client.close()
+def train(fn_training):
+    def do(cuda, data_args, model_args, epochs, n_batch, init_lr):
+        cuda = None if cuda < 0 else cuda
+        client = get_database_client()
+        db = client.test_database
+        args = prepare_args(data_args, model_args, epochs, n_batch, init_lr)
+        fn_training(cuda, db, args)
+        client.close()
+    return do
 
 
 def attach_stages(trainer, evaluator, ds_train, ds_val, ds_test):

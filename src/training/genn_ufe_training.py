@@ -16,29 +16,17 @@ which is the official implement of zuo2019neural.
 import fire
 import torch as t
 
-from src.database.database import get_database_client, load_genn_ufe_data
-from src.training.train_args import prepare_args
+from src.database.database import load_genn_ufe_data
+from src.training.training import train
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
 
 tmp_folder = 'src/training/.tmp/nmt_inspired'
 
-# TRAIN_CSV = f'{tmp_folder}/train_set_O2.csv'
-# TEST_CSV = f'{tmp_folder}/test_set_O2.csv'
-
 # saved_weights = f'{tmp_folder}/siamese_model_100DW2V_2HL_50HU_O2.ourown.hdf5'
 embedding_weights = \
     f'{tmp_folder}/100D_MinWordCount0_downSample1e-5_trained100epoch_L.w2v'
-
-
-def train(cuda, data_args, model_args, epochs, n_batch, init_lr):
-    cuda = None if cuda < 0 else cuda
-    client = get_database_client()
-    db = client.test_database
-    args = prepare_args(data_args, model_args, epochs, n_batch, init_lr)
-    do_training(cuda, db, args)
-    client.close()
 
 
 def do_training(cuda, db, a):
@@ -118,4 +106,4 @@ def _make_embedding(vocabulary, n_emb, model):
 
 
 if __name__ == '__main__':
-    fire.Fire(train)
+    fire.Fire(train(do_training))

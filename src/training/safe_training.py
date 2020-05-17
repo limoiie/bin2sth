@@ -7,7 +7,7 @@ from ignite.contrib.metrics import ROC_AUC
 from ignite.metrics import RunningAverage, Loss
 from torch.optim import Adam
 
-from src.database.database import get_database_client, load_nmt_data_end
+from src.database.database import load_nmt_data_end
 from src.dataset.dataset import get_data_loaders
 from src.models.metrics.atten_cosine_mse_loss import AttenPenaltyLoss
 from src.models.metrics.siamese_loss import SiameseLoss
@@ -15,8 +15,7 @@ from src.models.metrics.siamese_metric import SiameseMetric
 from src.models.safe import SAFE
 from src.training.build_engine import create_supervised_siamese_trainer, \
     create_supervised_siamese_evaluator
-from src.training.train_args import prepare_args
-from src.training.training import attach_stages
+from src.training.training import attach_stages, train
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
@@ -25,15 +24,6 @@ tmp_folder = 'src/training/.tmp/nmt_inspired'
 
 embedding_weights = \
     f'{tmp_folder}/100D_MinWordCount0_downSample1e-5_trained100epoch_L.w2v'
-
-
-def train(cuda, data_args, model_args, epochs, n_batch, init_lr):
-    cuda = None if cuda < 0 else cuda
-    client = get_database_client()
-    db = client.test_database
-    args = prepare_args(data_args, model_args, epochs, n_batch, init_lr)
-    do_training(cuda, db, args)
-    client.close()
 
 
 def do_training(cuda, db, a):
@@ -100,4 +90,4 @@ def _make_embedding(vocabulary, n_emb, model):
 
 
 if __name__ == "__main__":
-    fire.Fire(train)
+    fire.Fire(train(do_training))
