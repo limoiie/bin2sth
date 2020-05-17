@@ -14,12 +14,14 @@ from src.training.build_engine import \
     create_unsupervised_trainer, create_unsupervised_training_evaluator
 from src.training.train_args import TrainArgs
 from src.training.training import attach_unsupervised_evaluator, train
+from src.training.pvdm_args import PVDMArgs
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
 
 
 def do_training(cuda, db, a: TrainArgs):
+    assert isinstance(a.m, PVDMArgs)
     vocab, train_corpus, query_corpus, train_ds, query_ds = \
         load_pvdm_data(db, a.ds.vocab, a.ds.base_corpus, a.ds.find_corpus,
                        a.m.window, a.m.ss)

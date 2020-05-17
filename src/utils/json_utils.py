@@ -1,9 +1,12 @@
 import copy
 import json
 
+from src.utils.collection_op import strip_dict
+
 
 def json_update(src, delta):
     src = copy.deepcopy(src)
+    delta = strip_dict(delta)
     src.update(delta)
     return src
 
