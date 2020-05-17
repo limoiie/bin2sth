@@ -40,11 +40,11 @@ class Program(AsJson):
     arch: Arch
     funcs: List[Function]
 
-    def __init__(self, prog=None, cc=None, arch=None, opt=None,
-                 obf=None, funcs=None, cg=None):
-        self.prog, self.prog_ver = prog if prog else (None, None)
+    def __init__(self, prog=None, prog_ver=None, cc=None, cc_ver=None,
+                 arch=None, opt=None, obf=None, funcs=None, cg=None):
+        self.prog, self.prog_ver = prog, prog_ver
         self.arch = arch
-        self.cc, self.cc_ver = cc if cc else (None, None)
+        self.cc, self.cc_ver = cc, cc_ver
         self.opt = opt
         self.obf = obf
         self.funcs = funcs

@@ -42,7 +42,7 @@ class ProgramDAO(Dao):
 
 def make_prog_filter(prog=None, prog_ver=None, cc=None, cc_ver=None, arch=None,
                      opt=None, obf=None):
-    prog = Program((prog, prog_ver), (cc, cc_ver), arch, opt, obf)
+    prog = Program(prog, prog_ver, cc, cc_ver, arch, opt, obf)
     the_filter = prog.dict()
     return strip_dict(the_filter)
 

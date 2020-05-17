@@ -40,7 +40,7 @@ def make_x86(blks, x86, eq):
 
     arch = Arch(arch_name, 'b32', 'be')
     b = Program(
-        ('tmp_prog', '0.1'), ('gcc', '5'), arch, 'O3', None, funcs, None)
+        'tmp_prog', '0.1', 'gcc', '5', arch, 'O3', None, funcs, None)
     prog_dao.store(b)
 
 
