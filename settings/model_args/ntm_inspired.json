@@ -1,0 +1,6 @@
+{
+  "@": "NMTInspiredArgs",
+  "n_emb": 100,
+  "max_seq_len": 101,
+  "n_lstm_hidden": 64
+}

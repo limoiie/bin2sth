@@ -1,13 +1,10 @@
-from typing import List
-
 from gridfs import GridFS
 
 from src.database.dao import Dao
 from src.ida.as_json import AsJson
-from src.ida.code_elements import Program, Arch
-from src.utils.auto_json import auto_json
+from src.ida.code_elements import Program
+from src.training.train_args import BinArgs
 from src.utils.collection_op import strip_dict
-from src.utils.list_joint import flat, joint_list
 
 
 class ProgramDAO(Dao):
@@ -41,23 +38,6 @@ class ProgramDAO(Dao):
         prog['funcs'] = self._get_from_fs(prog['funcs'])
         prog['cg'] = self._get_from_fs(prog['cg'])
         return AsJson.from_dict(Program, prog)
-
-
-@auto_json
-class BinArgs(AsJson):
-    archs: List[Arch]
-
-    def __init__(self, progs=None, prog_vers=None, ccs=None, cc_vers=None,
-                 archs=None, opts=None, obfs=None):
-        self.progs, self.prog_vers = progs, prog_vers
-        self.ccs, self.cc_vers = ccs, cc_vers
-        self.archs, self.opts, self.obfs = archs, opts, obfs
-
-    def joint(self):
-        """ Joint product the args to form a set of binaries """
-        progs = flat(self.progs, self.prog_vers)
-        ccs = flat(self.ccs, self.cc_vers)
-        return joint_list([progs, ccs, self.archs, self.opts, self.obfs])
 
 
 def make_prog_filter(prog=None, prog_ver=None, cc=None, cc_ver=None, arch=None,

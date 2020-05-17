@@ -1,6 +1,8 @@
 from src.ida.as_json import AsJson
+from src.utils.auto_json import auto_json
 
 
+@auto_json
 class SAFEArgs(AsJson):
     def __init__(self, n_emb, n_rnn_state, rnn_depth, max_seq_len,
                  atten_hops, atten_depth, n_dense_layer):

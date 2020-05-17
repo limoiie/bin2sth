@@ -1,0 +1,10 @@
+{
+  "@": "SAFEArgs",
+  "n_emb": 100,
+  "n_rnn_state": 50,
+  "rnn_depth": 1,
+  "max_seq_len": 150,
+  "atten_hops": 10,
+  "atten_depth": 250,
+  "n_dense_layer": 2000
+}

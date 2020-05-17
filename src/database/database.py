@@ -2,7 +2,8 @@ import rx
 from pymongo import MongoClient
 
 import src.preprocesses.preprocess as pp
-from src.database.program_dao import BinArgs, load_progs_jointly
+from src.database.program_dao import load_progs_jointly
+from src.training.train_args import BinArgs
 from src.dataset.pvdm_dataset import PVDMDatasetBuilder, sync_corpus
 from src.dataset.genn_ufe_dataset import GENNDatasetBuilder
 from src.dataset.word2vec_datset import Word2VecDatasetBuilder

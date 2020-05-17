@@ -1,6 +1,27 @@
-from src.database.program_dao import BinArgs
+from typing import List
+
+from src.ida.as_json import AsJson
+from src.ida.code_elements import Arch
 from src.utils.auto_json import auto_json, AutoJson
 from src.utils.json_utils import obj_update
+from src.utils.list_joint import flat, joint_list
+
+
+@auto_json
+class BinArgs(AsJson):
+    archs: List[Arch]
+
+    def __init__(self, progs=None, prog_vers=None, ccs=None, cc_vers=None,
+                 archs=None, opts=None, obfs=None):
+        self.progs, self.prog_vers = progs, prog_vers
+        self.ccs, self.cc_vers = ccs, cc_vers
+        self.archs, self.opts, self.obfs = archs, opts, obfs
+
+    def joint(self):
+        """ Joint product the args to form a set of binaries """
+        progs = flat(self.progs, self.prog_vers)
+        ccs = flat(self.ccs, self.cc_vers)
+        return joint_list([progs, ccs, self.archs, self.opts, self.obfs])
 
 
 @auto_json
