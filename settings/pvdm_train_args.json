@@ -30,7 +30,7 @@
             "none"
         ]
     },
-    "corpus": {
+    "base_corpus": {
         "progs": [
             "lua"
         ],

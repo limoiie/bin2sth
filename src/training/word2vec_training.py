@@ -28,7 +28,7 @@ def train(cuda, data_args, epochs, n_batch, init_lr, **model_args):
 
 def do_training(cuda, db, a):
     vocab, corpus, train_ds = load_word2vec_data(
-        db, a.ds.vocab, a.ds.corpus, a.m.window, a.m.ss)
+        db, a.ds.vocab, a.ds.base_corpus, a.m.window, a.m.ss)
     train_loader = DataLoader(train_ds, batch_size=a.rt.n_batch)
 
     w2v = Word2Vec(vocab.size, a.m.n_emb, no_hdn=a.m.no_hdn)
