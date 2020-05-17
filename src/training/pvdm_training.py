@@ -12,7 +12,6 @@ from src.models.pvdm import CBowPVDM, FuncEmbedding, \
     doc_eval_transform, doc_eval_flatten_transform
 from src.training.build_engine import \
     create_unsupervised_trainer, create_unsupervised_training_evaluator
-from src.training.pvdm_args import PVDMArgs
 from src.training.train_args import prepare_args
 from src.training.training import attach_unsupervised_evaluator
 from src.utils.logger import get_logger
@@ -20,12 +19,11 @@ from src.utils.logger import get_logger
 logger = get_logger('training')
 
 
-def train(cuda, data_args, epochs, n_batch, init_lr, **model_args):
+def train(cuda, data_args, model_args, epochs, n_batch, init_lr):
     cuda = None if cuda < 0 else cuda
     client = get_database_client()
     db = client.test_database
-    args = prepare_args(
-        data_args, epochs, n_batch, init_lr, PVDMArgs, **model_args)
+    args = prepare_args(data_args, model_args, epochs, n_batch, init_lr)
     do_training(cuda, db, args)
     client.close()
 

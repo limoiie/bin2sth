@@ -1,0 +1,8 @@
+{
+  "@": "GENNArgs",
+  "n_emb": 200,
+  "n_negs": 20,
+  "no_hdn": false,
+  "ss": 1e-4,
+  "window": 5
+}

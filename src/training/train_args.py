@@ -66,10 +66,10 @@ def parse_dataset_args_from_file(file):
     return args
 
 
-def prepare_args(data_args, epochs, n_batch, init_lr, ModelArg, **model_args):
+def prepare_args(data_args, model_args, epochs, n_batch, init_lr):
     # dataset args are loaded from file since they are too complex
     # to be passed through command line
     ds_args = parse_dataset_args_from_file(data_args)
+    m_args = AutoJson.load(model_args)
     rt_args = RuntimeArgs(epochs, n_batch, init_lr)
-    m_args = ModelArg(**model_args)
     return TrainArgs(ds_args, rt_args, m_args)

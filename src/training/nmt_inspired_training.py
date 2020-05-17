@@ -42,12 +42,11 @@ embedding_weights = \
     f'{tmp_folder}/100D_MinWordCount0_downSample1e-5_trained100epoch_L.w2v'
 
 
-def train(cuda, data_args, epochs, n_batch, init_lr, **model_args):
+def train(cuda, data_args, model_args, epochs, n_batch, init_lr):
     cuda = None if cuda < 0 else cuda
     client = get_database_client()
     db = client.test_database
-    args = prepare_args(
-        data_args, epochs, n_batch, init_lr, NMTInspiredArgs, **model_args)
+    args = prepare_args(data_args, model_args, epochs, n_batch, init_lr)
     do_training(cuda, db, args)
     client.close()
 

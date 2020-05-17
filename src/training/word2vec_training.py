@@ -9,19 +9,17 @@ from src.database.database import get_database_client, load_word2vec_data
 from src.models.modules.word2vec import Word2Vec, CBow, NegSample
 from src.training.build_engine import \
     create_unsupervised_trainer
-from src.training.pvdm_args import PVDMArgs
 from src.training.train_args import prepare_args
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
 
 
-def train(cuda, data_args, epochs, n_batch, init_lr, **model_args):
+def train(cuda, data_args, model_args, epochs, n_batch, init_lr):
     cuda = None if cuda < 0 else cuda
     client = get_database_client()
     db = client.test_database
-    args = prepare_args(
-        data_args, epochs, n_batch, init_lr, PVDMArgs, **model_args)
+    args = prepare_args(data_args, model_args, epochs, n_batch, init_lr)
     do_training(cuda, db, args)
     client.close()
 
