@@ -20,6 +20,7 @@ import sys; sys.path.append(['/Users/ligengwang/Projects/pycharm/bin2sth']); imp
     - i.e. config: window, sub-sampling
   - Runtime Setting
     - i.e. epoch, lr
+  - PreTrained Model
 - Result
   - Model
   - Metrics
@@ -38,8 +39,9 @@ args as the key to store or load corresponding data, model and results.
   - used to identify model
   - components
     - Dataset Args: specify on which data source the model is trained
+    - Runtime Args: args that control the training process
     - Model Args: args that influence the model construction, such as 
     the network size
-    - Runtime Args: args that control the training process
+    - Dict[Train Args]: args that satisfy the pre-trained
 - Result Args 
   - Train Args

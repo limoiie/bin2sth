@@ -67,7 +67,7 @@ class AsJson(object):
             if ori in [list, set]:
                 inner_cls, = cls.__args__
                 return [AsJson.from_dict(inner_cls, v) for v in dic]
-            if ori in [map]:
+            if ori in [dict]:
                 k_cls, v_cls = cls.__args__
                 return {
                     AsJson.from_dict(k_cls, k): AsJson.from_dict(v_cls, v)
@@ -75,8 +75,3 @@ class AsJson(object):
                 }
 
         return dic
-
-
-def load_json_file(file):
-    with open(file, 'r') as f:
-        return json.load(f)

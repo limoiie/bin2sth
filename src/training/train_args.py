@@ -1,6 +1,6 @@
 from src.database.program_dao import BinArgs
-from src.ida.as_json import AsJson, load_json_file
-from src.utils.json_utils import json_update
+from src.ida.as_json import AsJson
+from src.utils.json_utils import json_update, load_json_file
 
 
 class DatasetArgs(AsJson):
