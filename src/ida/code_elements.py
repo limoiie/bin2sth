@@ -15,6 +15,9 @@ class Arch(AsJson):
         self.bits = bits
         self.endian = endian
 
+    def __str__(self):
+        return str(self.__dict__)
+
 
 class Block(AsJson):
     def __init__(self):
@@ -22,6 +25,9 @@ class Block(AsJson):
         self.ea = 0
         self.src = []  # asm lines
         self.ref_data = {}  # data ref as address -> hex string
+
+    def __str__(self):
+        return str(self.__dict__)
 
 
 class Function(AsJson):
@@ -34,6 +40,9 @@ class Function(AsJson):
         self.flags = 0
         self.blocks = []
         self.cfg = {}
+
+    def __str__(self):
+        return str(self.__dict__)
 
 
 class Program(AsJson):
@@ -49,3 +58,6 @@ class Program(AsJson):
         self.obf = obf
         self.funcs = funcs
         self.cg = cg
+
+    def __str__(self):
+        return str(self.__dict__)

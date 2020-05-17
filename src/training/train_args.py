@@ -22,6 +22,9 @@ class BinArgs:
         ccs = flat(self.ccs, self.cc_vers)
         return joint_list([progs, ccs, self.archs, self.opts, self.obfs])
 
+    def __str__(self):
+        return str(self.__dict__)
+
 
 @auto_json
 class DatasetArgs:
@@ -34,6 +37,9 @@ class DatasetArgs:
         self.base_corpus = base_corpus
         self.find_corpus = find_corpus
 
+    def __str__(self):
+        return str(self.__dict__)
+
 
 @auto_json
 class RuntimeArgs:
@@ -42,6 +48,9 @@ class RuntimeArgs:
         self.epochs = epochs
         self.n_batch = n_batch
         self.init_lr = init_lr
+
+    def __str__(self):
+        return str(self.__dict__)
 
 
 @auto_json
@@ -56,6 +65,9 @@ class TrainArgs:
         self.rt: RuntimeArgs = rt_args
         self.m = m_args
         self.tag = tag
+
+    def __str__(self):
+        return str(self.__dict__)
 
 
 def wrap_dataset_args(args):
