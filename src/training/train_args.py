@@ -58,8 +58,7 @@ class TrainArgs:
         self.m = model_args
 
 
-def parse_dataset_args_from_file(file):
-    args: DatasetArgs = AutoJson.load(file)
+def wrap_dataset_args(args):
     if not args.find_corpus:
         args.find_corpus = args.base_corpus
     obj_update(args.base_corpus, args.find_corpus)
@@ -69,7 +68,7 @@ def parse_dataset_args_from_file(file):
 def prepare_args(data_args, model_args, epochs, n_batch, init_lr):
     # dataset args are loaded from file since they are too complex
     # to be passed through command line
-    ds_args = parse_dataset_args_from_file(data_args)
+    ds_args = AutoJson.load(data_args)
     m_args = AutoJson.load(model_args)
     rt_args = RuntimeArgs(epochs, n_batch, init_lr)
-    return TrainArgs(ds_args, rt_args, m_args)
+    return TrainArgs(wrap_dataset_args(ds_args), rt_args, m_args)
