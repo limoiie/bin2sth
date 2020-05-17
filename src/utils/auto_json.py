@@ -83,6 +83,6 @@ class AutoJson(object):
                 Cls = _Register.id_cls[dic[_json_cls_key]]
                 del dic[_json_cls_key]
                 obj = Cls()
-                obj.__dict__ = dic
+                obj.__dict__.update(dic)
                 return obj
         return data

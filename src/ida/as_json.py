@@ -53,12 +53,11 @@ class AsJson(object):
     @staticmethod
     def from_dict(cls, dic):
         if inspect.isclass(cls) and issubclass(cls, AsJson):
-            dic = copy.copy(dic)
+            obj = cls()
+            obj.__dict__.update(dic)
             if hasattr(cls, '__annotations__'):
                 for k, field_cls in cls.__annotations__.items():
-                    dic[k] = AsJson.from_dict(field_cls, dic[k])
-            obj = cls()
-            obj.__dict__ = dic
+                    obj.__dict__[k] = AsJson.from_dict(field_cls, dic[k])
             return obj
 
         # when cls is an instance of typing._GenericAlias
