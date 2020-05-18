@@ -101,6 +101,18 @@ class Dao:
     def get_from_fs(self, f_id):
         return json.loads(self.fs.get(f_id).read().decode(encoding=encoding))
 
+    def put_into_fs_(self, obj):
+        tf = tempfile.mktemp()
+        with open(tf, 'w+b') as f:
+            torch.save(obj, f)
+        with open(tf, 'rb') as f:
+            id_ = self.fs.put(f)
+        os.remove(tf)
+        return id_
+
+    def get_from_fs_(self, f_id):
+        return torch.load(self.fs.get(f_id))
+
     def find(self, filtor):
         return map(Adapter.unwrap_(self), self.col.find(filtor))
 
