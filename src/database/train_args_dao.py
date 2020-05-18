@@ -2,7 +2,7 @@ from gridfs import GridFS
 from pymongo.database import Database
 
 from src.database.dao import Dao, Adapter
-from src.training.train_args import TrainArgs
+from src.training.args.train_args import TrainArgs
 from src.utils.auto_json import AutoJson
 
 
@@ -15,6 +15,7 @@ class TrainArgsAdapter(Adapter):
         return AutoJson.from_dict(js)
 
 
+@Dao.register(TrainArgs)
 class TrainArgDAO(Dao):
     def __init__(self, db: Database, fs: GridFS):
         super().__init__(db, fs, db.training_process, TrainArgs)

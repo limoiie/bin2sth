@@ -21,6 +21,7 @@ class CheckPointAdapter(Adapter):
         return AutoJson.from_dict(dic)
 
 
+@Dao.register(CheckPoint)
 class CheckPointDAO(Dao):
     def __init__(self, db, fs: GridFS):
         super().__init__(db, fs, db.checkpoints, CheckPoint)

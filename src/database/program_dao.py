@@ -3,7 +3,7 @@ from gridfs import GridFS
 from src.database.dao import Dao, Adapter
 from src.ida.as_json import AsJson
 from src.ida.code_elements import Program
-from src.training.train_args import BinArgs
+from src.training.args.train_args import BinArgs
 from src.utils.collection_op import strip_dict
 
 
@@ -21,6 +21,7 @@ class ProgramAdapter(Adapter):
         return AsJson.from_dict(Program, dic)
 
 
+@Dao.register(Program)
 class ProgramDAO(Dao):
     def __init__(self, db, fs: GridFS):
         super().__init__(db, fs, db.binaries, Program)

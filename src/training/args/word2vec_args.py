@@ -1,4 +1,4 @@
-from src.training.pvdm_args import PVDMArgs
+from src.training.args.pvdm_args import PVDMArgs
 from src.utils.auto_json import auto_json
 
 

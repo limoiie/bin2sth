@@ -1,7 +1,7 @@
 from ignite.engine import Events
 
 from src.database.database import get_database
-from src.training.train_args import prepare_args
+from src.training.args.train_args import prepare_args
 
 
 def train(fn_training):

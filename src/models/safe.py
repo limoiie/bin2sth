@@ -27,7 +27,7 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
 from src.models.model import layer_trainable
-from src.training.safe_args import SAFEArgs
+from src.training.args.safe_args import SAFEArgs
 
 
 class SAFE(nn.Module):
