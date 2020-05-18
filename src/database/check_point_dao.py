@@ -3,21 +3,24 @@ from gridfs import GridFS
 from src.database.beans.check_point import CheckPoint
 from src.database.dao import Adapter, Dao
 from src.utils.auto_json import AutoJson
+from src.utils.logger import get_logger
+
+logger = get_logger('checkpoint dao')
 
 
 @Adapter.register(CheckPoint)
 class CheckPointAdapter(Adapter):
     def wrap(self, dao, cp: CheckPoint):
         dic = AutoJson.to_dict(cp)
-        for k, model in dic['checkpoints']:
-            # todo: current put_into_fs will convert arguments into json str
-            dic['checkpoints'][k] = dao.put_into_fs(model)
+        for k, model in dic['checkpoints'].items():
+            logger.info(f'dumping checkpoint: {k}')
+            dic['checkpoints'][k] = dao.put_into_fs_(model)
         return dic
 
     def unwrap(self, dao, dic) -> CheckPoint:
-        for k, model in dic['checkpoints']:
-            # todo: current get_from_fs will decode json string
-            dic['checkpoints'][k] = dao.get_from_fs(model)
+        for k, model in dic['checkpoints'].items():
+            logger.info(f'loading checkpoint: {k}')
+            dic['checkpoints'][k] = dao.get_from_fs_(model)
         return AutoJson.from_dict(dic)
 
 
