@@ -11,8 +11,8 @@ logger = get_logger('DAO')
 encoding = 'utf-8'
 
 
-def to_filter(bean):
-    return strip_dict(bean.dict(with_cls=False))
+def to_filter(bean, with_cls=True):
+    return strip_dict(bean.dict(with_cls))
 
 
 class Adapter:
@@ -36,6 +36,9 @@ class Adapter:
                 raise ValueError(F'{raw_cls} has been registered already!')
             Adapter.__register[raw_cls] = cls()
             Adapter.__register_by_name[raw_cls.__name__] = cls()
+            # **no-return** means you cannot create this cls on your own.
+            # you should never create it manually. instead, to use the
+            # functions of Adapter, you should call Adapter.wrap_(dao)(...)
         return f
 
     @staticmethod
@@ -75,6 +78,8 @@ class Dao:
             Dao.__register[raw_cls] = cls
             Dao.__register_by_name[raw_cls.__name__] = cls
             logger.debug(f'Have registered {raw_cls} into Dao')
+            # **no-return** means you cannot create this cls on your own.
+            # the only way to get dao is through the :func instance.
         return f
 
     @staticmethod
