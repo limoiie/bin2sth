@@ -2,7 +2,7 @@ from typing import List
 
 from gridfs import GridFS
 
-from src.database.dao import to_filter
+from src.database.dao import to_filter, Dao
 from src.ida.code_elements import Arch
 from src.utils.auto_json import auto_json, AutoJson
 from src.utils.json_utils import obj_update
@@ -88,7 +88,6 @@ def prepare_args(db, data_args, model_args, epochs, n_batch, init_lr):
     m = AutoJson.load(model_args)
     args = TrainArgs(ds, rt, m)
 
-    from src.database.train_args_dao import TrainArgDAO
-    dao = TrainArgDAO(db, GridFS(db))
+    dao = Dao.instance(TrainArgs, db, GridFS(db))
     # fetch from db to insert the primary key `_id` into args
     return dao.find_or_store(to_filter(args), args)

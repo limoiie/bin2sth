@@ -36,7 +36,7 @@ def load_progs_jointly(db, args: BinArgs):
     Joint product the args to form a set of binaries and then load the
     info of these binaries into a list.
     """
-    prog_dao = ProgramDAO(db, GridFS(db))
+    prog_dao = Dao.instance(Program, db, GridFS(db))
     for (prog, prog_ver), (cc, cc_ver), arch, opt, obf in args.joint():
         filtor = make_prog_filter(
             prog=prog, prog_ver=prog_ver, cc=cc, cc_ver=cc_ver,
