@@ -25,3 +25,9 @@ class CheckPointAdapter(Adapter):
 class CheckPointDAO(Dao):
     def __init__(self, db, fs: GridFS):
         super().__init__(db, fs, db.checkpoints, CheckPoint)
+
+    def _cascade_delete(self, dic):
+        for name, model_file in dic['checkpoints'].items():
+            logger.info(f'Deleting attached file of model `{name}` '
+                        f'while deleting checkpoint')
+            self.delete_file(model_file)

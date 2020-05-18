@@ -4,5 +4,13 @@
   "n_negs": 20,
   "no_hdn": false,
   "ss": 1e-4,
-  "window": 5
+  "window": 5,
+  "requires": [
+    {
+      "word2vec": {
+        "training_id": "5ec16ee02cf3a4e8aa5a4a3a",
+        "module": "word2vec"
+      }
+    }
+  ]
 }

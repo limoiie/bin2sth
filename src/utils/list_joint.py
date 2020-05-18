@@ -1,3 +1,4 @@
+# todo move into collection_op
 def joint(lhs, rhs, c=False):
     """ Joint-product the two given lists """
     if not lhs:

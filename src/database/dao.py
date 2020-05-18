@@ -1,6 +1,9 @@
 import json
+import tempfile
+import os
 
-from gridfs import GridFS
+import torch
+from gridfs import GridFS, GridIn
 from pymongo.collection import Collection
 from pymongo.database import Database
 
@@ -131,7 +134,24 @@ class Dao:
         return self.col.count_documents(filtor or {})
 
     def delete(self, filtor):
-        return self.col.delete_many(filtor)
+        for dic in self.col.find(filtor):
+            logger.info(f'Deleting checkpoint {dic["_id"]}')
+            self._cascade_delete(dic)
+            res = self.col.delete_one(dic)
+            logger.info(f'Deleted with result: {res}')
 
     def delete_one(self, filtor):
-        return self.col.delete_one(filtor)
+        dic = self.col.delete_one(filtor)
+        logger.info(f'Deleting checkpoint {dic["_id"]}')
+        self._cascade_delete(dic)
+        res = self.col.delete_one(dic)
+        logger.info(f'Deleted with result: {res}')
+
+    def delete_file(self, file_id):
+        logger.info(f'Deleting file {file_id}')
+        res = self.fs.delete(file_id)
+        logger.info(f'Deleted with result: {res}')
+        return res
+
+    def _cascade_delete(self, dic):
+        pass

@@ -26,6 +26,10 @@ class ProgramDAO(Dao):
     def __init__(self, db, fs: GridFS):
         super().__init__(db, fs, db.binaries, Program)
 
+    def _cascade_delete(self, dic):
+        self.delete_file(dic['funcs'])
+        self.delete_file(dic['cg'])
+
 
 def make_prog_filter(**kwargs):
     return strip_dict(Program(**kwargs).dict())

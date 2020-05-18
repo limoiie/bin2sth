@@ -16,7 +16,9 @@ which is the official implement of zuo2019neural.
 import fire
 import torch as t
 
-from src.database.database import load_genn_ufe_data
+from src.database.database import load_genn_ufe_data, load_model, dump_model
+from src.models.modules.word2vec import Word2Vec
+from src.training.args.genn_ufe_args import GENNArgs
 from src.training.training import train
 from src.utils.logger import get_logger
 
@@ -46,6 +48,9 @@ def do_training(cuda, db, a):
     #    [-] store and load
     #  4. extract block feature
     #  5. create model and evaluate
+
+    # load model
+    w2v = load_word2vec(db, a.m, vocab.size)
 
     # Load a trained w2v model
     # w2v = models.Word2Vec.load(embedding_weights)
@@ -82,6 +87,11 @@ def do_training(cuda, db, a):
     #
     # trainer.run(ds, max_epochs=rt.epochs)
 
+    # dump model
+    dump_model(db, a.__dict__['_id'], {
+        'word2vec': w2v.state_dict()
+    })
+
 
 def sim_fn(o1, o2):
     """
@@ -103,6 +113,19 @@ def _make_embedding(vocabulary, n_emb, model):
         if word in model.wv:
             embeddings[index] = t.tensor(model.wv[word].copy(), dtype=t.float32)
     return embeddings
+
+
+def load_word2vec(db, m, vocab_size):
+    """load the model if there is a dependency"""
+    if not m.requires or 'word2vec' not in m.requires:
+        return Word2Vec(vocab_size, m.n_emb, no_hdn=m.no_hdn)
+    req = m.requires['word2vec']
+    w2v = load_model(db, req)
+    if w2v is not None:
+        return w2v
+    raise ModuleNotFoundError(f'No such pre-trained checkpoint is found:'
+                              f'training_id: {req["training_id"]},'
+                              f'module: {req["module"]}')
 
 
 if __name__ == '__main__':
