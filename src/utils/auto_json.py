@@ -1,5 +1,7 @@
 import copy
 import json
+from functools import wraps
+from types import FunctionType
 from typing import Type
 
 _json_cls_key = '@'
@@ -13,6 +15,7 @@ class _Register:
 def auto_json(cls: Type):
     assert cls.__name__ not in _Register.id_cls
 
+    @wraps(cls, updated=[])
     class Cls(cls):
         def dict(self, with_cls=True):
             return AutoJson.to_dict(self, with_cls)
@@ -66,7 +69,7 @@ class AutoJson(object):
         if cls is dict:
             return {
                 AutoJson.to_dict(k, with_cls): AutoJson.to_dict(v, with_cls)
-                for k, v in obj.items()
+                for k, v in obj.items() if not isinstance(v, FunctionType)
             }
 
         return obj
