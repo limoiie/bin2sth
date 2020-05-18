@@ -161,9 +161,8 @@ class Dao:
 
     def delete_file(self, file_id):
         logger.info(f'Deleting file {file_id}')
-        res = self.fs.delete(file_id)
-        logger.info(f'Deleted with result: {res}')
-        return res
+        self.fs.delete(file_id)
+        logger.info(f'Deleted')
 
     def _cascade_delete(self, dic):
         pass

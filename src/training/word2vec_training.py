@@ -5,10 +5,11 @@ from ignite.utils import convert_tensor
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from src.database.database import load_word2vec_data
+from src.database.database import load_word2vec_data, dump_model
 from src.models.modules.word2vec import Word2Vec, CBow, NegSample
 from src.training.build_engine import \
     create_unsupervised_trainer
+from src.training.genn_ufe_training import load_word2vec
 from src.training.training import train
 from src.utils.logger import get_logger
 
@@ -20,7 +21,7 @@ def do_training(cuda, db, a):
         db, a.ds.vocab, a.ds.base_corpus, a.m.window, a.m.ss)
     train_loader = DataLoader(train_ds, batch_size=a.rt.n_batch)
 
-    w2v = Word2Vec(vocab.size, a.m.n_emb, no_hdn=a.m.no_hdn)
+    w2v: Word2Vec = load_word2vec(db, a.m, vocab.size)
 
     sampler = NegSample(vocab.size, a.m.n_negs, vocab.word_freq_ratio())
     train_model = CBow(w2v, sampler)
@@ -36,6 +37,10 @@ def do_training(cuda, db, a):
     pbar.attach(trainer, ['batch_loss'])
 
     trainer.run(train_loader, max_epochs=a.rt.epochs)
+
+    dump_model(db, getattr(a, '_id'), {
+        'word2vec': w2v.state_dict()
+    })
 
 
 def _prepare_batch(batch, device=None, non_blocking=False):

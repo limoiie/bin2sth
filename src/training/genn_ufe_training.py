@@ -117,11 +117,13 @@ def _make_embedding(vocabulary, n_emb, model):
 
 def load_word2vec(db, m, vocab_size):
     """load the model if there is a dependency"""
+    w2v = Word2Vec(vocab_size, m.n_emb, no_hdn=m.no_hdn)
     if not m.requires or 'word2vec' not in m.requires:
-        return Word2Vec(vocab_size, m.n_emb, no_hdn=m.no_hdn)
+        return w2v
     req = m.requires['word2vec']
-    w2v = load_model(db, req)
-    if w2v is not None:
+    state = load_model(db, req)
+    if state:
+        w2v.load_state_dict(state)
         return w2v
     raise ModuleNotFoundError(f'No such pre-trained checkpoint is found:'
                               f'training_id: {req["training_id"]},'

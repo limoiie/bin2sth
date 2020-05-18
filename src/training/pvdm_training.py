@@ -6,15 +6,16 @@ from ignite.metrics import RunningAverage, TopKCategoricalAccuracy
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from src.database.database import load_pvdm_data
+from src.database.database import load_pvdm_data, dump_model
 from src.models.modules.word2vec import Word2Vec
 from src.models.pvdm import CBowPVDM, FuncEmbedding, \
     doc_eval_transform, doc_eval_flatten_transform
+from src.training.args.pvdm_args import PVDMArgs
+from src.training.args.train_args import TrainArgs
 from src.training.build_engine import \
     create_unsupervised_trainer, create_unsupervised_training_evaluator
-from src.training.train_args import TrainArgs
+from src.training.genn_ufe_training import load_word2vec
 from src.training.training import attach_unsupervised_evaluator, train
-from src.training.pvdm_args import PVDMArgs
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
@@ -30,17 +31,14 @@ def do_training(cuda, db, a: TrainArgs):
     query_loader = DataLoader(
         query_ds, batch_size=a.rt.n_batch, collate_fn=_collect_fn)
 
-    embedding = Word2Vec(vocab.size, a.m.n_emb, no_hdn=a.m.no_hdn)
+    w2v: Word2Vec = load_word2vec(db, a.m, vocab.size)
 
     tf_embedding = FuncEmbedding(train_corpus.n_docs, a.m.n_emb)
     qf_embedding = FuncEmbedding(query_corpus.n_docs, a.m.n_emb)
 
-    train_model = CBowPVDM(
-        embedding, tf_embedding, vocab.size, a.m.n_negs,
-        vocab.word_freq_ratio())
-    query_model = CBowPVDM(
-        None, qf_embedding, vocab.size, a.m.n_negs,
-        vocab.word_freq_ratio())
+    ws = vocab.word_freq_ratio()
+    train_model = CBowPVDM(w2v, tf_embedding, vocab.size, a.m.n_negs, ws)
+    query_model = CBowPVDM(None, qf_embedding, vocab.size, a.m.n_negs, ws)
 
     train_optim = Adam(train_model.parameters(), lr=a.rt.init_lr)
     query_optim = Adam(query_model.parameters(), lr=a.rt.init_lr)
@@ -67,6 +65,10 @@ def do_training(cuda, db, a: TrainArgs):
     pbar.attach(trainer, ['batch_loss'])
 
     trainer.run(train_loader, max_epochs=a.rt.epochs)
+
+    dump_model(db, getattr(a, '_id'), {
+        'word2vec': w2v.state_dict()
+    })
 
 
 def _collect_fn(batch):
