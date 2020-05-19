@@ -5,9 +5,9 @@ from pymongo import MongoClient
 
 import src.preprocesses.preprocess as pp
 from src.database.beans.check_point import CheckPoint
-from src.database.dao import Dao
-from src.database.program_dao import load_progs_jointly
-from src.training.args.train_args import BinArgs
+from src.database.dao import Dao, to_filter
+from src.ida.code_elements import Program
+from src.training.args.train_args import BinArgs, RuntimeArgs, TrainArgs
 from src.dataset.pvdm_dataset import PVDMDatasetBuilder, sync_corpus
 from src.dataset.genn_ufe_dataset import GENNDatasetBuilder
 from src.dataset.word2vec_datset import Word2VecDatasetBuilder
@@ -15,6 +15,8 @@ from src.preprocesses.cfg_corpus import CfgCorpusBuilder
 from src.dataset.nmt_inspired_dataset import NMTInsDataEnd
 from src.preprocesses.corpus import CorpusBuilder
 from src.preprocesses.preprocess import BinBag
+from src.utils.auto_json import AutoJson
+from src.utils.json_utils import obj_update
 from src.utils.logger import get_logger
 
 logger = get_logger('database')
@@ -27,6 +29,45 @@ def get_database_client():
 
 def get_database():
     return get_database_client().test_database
+
+
+def adjust_dataset_args(args):
+    if not args.find_corpus:
+        args.find_corpus = args.base_corpus
+    obj_update(args.base_corpus, args.find_corpus)
+    return args
+
+
+def prepare_args(db, data_args, model_args, epochs, n_batch, init_lr):
+    # dataset args are loaded from file since they are too complex
+    # to be passed through command line
+    ds = adjust_dataset_args(AutoJson.load(data_args))
+    rt = RuntimeArgs(epochs, n_batch, init_lr)
+    m = AutoJson.load(model_args)
+    args = TrainArgs(ds, rt, m)
+
+    dao = Dao.instance(TrainArgs, db, GridFS(db))
+    # fetch from db to insert the primary key `_id` into args
+    return dao.find_or_store(to_filter(args), args)
+
+
+def load_progs_jointly(db, args: BinArgs):
+    """
+    Joint product the args to form a set of binaries and then load the
+    info of these binaries into a list.
+    """
+    prog_dao = Dao.instance(Program, db, GridFS(db))
+    for (prog, prog_ver), (cc, cc_ver), arch, opt, obf in args.joint():
+        prog = Program(prog=prog, prog_ver=prog_ver, cc=cc, cc_ver=cc_ver,
+                       arch=arch, opt=opt, obf=obf)
+        # fixme: update database so that program can be
+        ps = prog_dao.find(to_filter(prog, with_cls=False))
+        if ps is None:
+            raise ValueError(f'No such Program info in the database: \
+                prog={prog}, prog_ver={prog_ver}, cc={cc}, cc_ver={cc_ver}, \
+                arch={arch}, opt={opt}, obf={obf}')
+        for p in ps:
+            yield p
 
 
 def load_vocab(db, args: BinArgs):

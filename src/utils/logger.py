@@ -43,7 +43,7 @@ import coloredlogs
 __formatter = {
     '()': 'coloredlogs.ColoredFormatter',
     'format': "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    'datefmt': '%Y-%m-%d %H:%M:%S'
+    'datefmt': '%m-%d %H:%M:%S'
 }
 logging.basicConfig(format=str(__formatter))
 
@@ -63,7 +63,7 @@ logging.getLogger().setLevel(level=logging.WARN)
 def get_logger(name) -> logging.Logger:
     if name not in __loggers:
         logger = logging.getLogger(name)
-        coloredlogs.install(level=logging.INFO, logger=logger,
+        coloredlogs.install(level=logging.DEBUG, logger=logger,
                             field_styles=__field_style)
         __loggers[name] = logger
     return __loggers[name]

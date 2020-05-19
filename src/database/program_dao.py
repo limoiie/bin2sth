@@ -3,8 +3,6 @@ from gridfs import GridFS
 from src.database.dao import Dao, Adapter
 from src.ida.as_json import AsJson
 from src.ida.code_elements import Program
-from src.training.args.train_args import BinArgs
-from src.utils.collection_op import strip_dict
 
 
 @Adapter.register(Program)
@@ -29,26 +27,3 @@ class ProgramDAO(Dao):
     def _cascade_delete(self, dic):
         self.delete_file(dic['funcs'])
         self.delete_file(dic['cg'])
-
-
-def make_prog_filter(**kwargs):
-    return strip_dict(Program(**kwargs).dict())
-
-
-def load_progs_jointly(db, args: BinArgs):
-    """
-    Joint product the args to form a set of binaries and then load the
-    info of these binaries into a list.
-    """
-    prog_dao = Dao.instance(Program, db, GridFS(db))
-    for (prog, prog_ver), (cc, cc_ver), arch, opt, obf in args.joint():
-        filtor = make_prog_filter(
-            prog=prog, prog_ver=prog_ver, cc=cc, cc_ver=cc_ver,
-            arch=arch, opt=opt, obf=obf)
-        ps = prog_dao.find(filtor)
-        if ps is None:
-            raise ValueError(f'No such Program info in the database: \
-                prog={prog}, prog_ver={prog_ver}, cc={cc}, cc_ver={cc_ver}, \
-                arch={arch}, opt={opt}, obf={obf}')
-        for p in ps:
-            yield p
