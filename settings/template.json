@@ -9,21 +9,14 @@
     "base_model",
     "find_model"
   ],
-  "vocab_recipe": {
-    "@": "VocabRecipe",
-    "min_word_freq": 3
-  },
   "corpus_recipe": {
     "@": "CorpusRecipe",
     "min_fun_len": 5
   },
   "vocab": {
-    "data": "&ds.vocab",
-    "recipe": "&vocab_recipe"
-  },
-  "vocab_by_load": {
-    "training_id": "5ec34ed32442a629bd2bacaf",
-    "module": "vocab"
+    "@": "CheckPointEntry",
+    "training_id": "5ec7d92b9739daabdecfd963",
+    "name": "vocab"
   },
   "base_corpus": {
     "data": "&ds.base_corpus",

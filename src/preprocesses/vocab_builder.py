@@ -1,7 +1,7 @@
 import rx
 
 import src.preprocesses.preprocess as pp
-from src.database.factory import Repository
+from src.database.repository import Repository
 from src.preprocesses.builder import ModelBuilder, ModelKeeper, WholeModelKeeper
 from src.preprocesses.vocab import AsmVocab
 from src.training.args.train_args import BinArgs
