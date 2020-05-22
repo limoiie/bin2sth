@@ -12,7 +12,7 @@ from src.preprocesses.corpus import CorpusMaker
 from src.ida.code_elements import Program, Function, Block
 from src.utils.logger import get_logger
 from src.preprocesses.vocab import AsmVocabMaker
-from src.utils.rx.internal.basic import second
+from src.utils.pure_func import second
 
 logger = get_logger('preprocess')
 
