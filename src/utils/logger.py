@@ -63,7 +63,7 @@ logging.getLogger().setLevel(level=logging.WARN)
 def get_logger(name) -> logging.Logger:
     if name not in __loggers:
         logger = logging.getLogger(name)
-        coloredlogs.install(level=logging.DEBUG, logger=logger,
+        coloredlogs.install(level=logging.INFO, logger=logger,
                             field_styles=__field_style)
         __loggers[name] = logger
     return __loggers[name]

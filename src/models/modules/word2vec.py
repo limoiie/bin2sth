@@ -1,20 +1,32 @@
 import torch
 
+from src.preprocesses.builder import ModelBuilder
+from src.preprocesses.vocab import AsmVocab
+from src.utils.auto_json import auto_json
 
+
+@auto_json
+class Word2VecRecipe:
+    def __init__(self, n_emb=0, no_hdn=False, padding_idx=0):
+        self.n_emb = n_emb
+        self.no_hdn = no_hdn
+        self.padding_idx = padding_idx
+
+
+@ModelBuilder.register_cls
 class Word2Vec(torch.nn.Module):
-    def __init__(self, vocab_size, embed_size, padding_idx=0, no_hdn=False):
+    vocab: AsmVocab
+
+    def __init__(self, vocab, cfg):
         super(Word2Vec, self).__init__()
 
-        self.vocab_size = vocab_size
-        self.embed_size = embed_size
-        self.padding_idx = padding_idx
+        self.vocab_size = vocab.size
+        self.cfg = cfg
 
         self.idx2vec = self.__create_embedding(
             self.__create_param())
-
-        if no_hdn:
-            self.idx2hdn = self.idx2vec
-        else:
+        self.idx2hdn = self.idx2vec
+        if not self.cfg.no_hdn:
             self.idx2hdn = self.__create_embedding(
                 self.__create_param())
 
@@ -37,13 +49,13 @@ class Word2Vec(torch.nn.Module):
 
     def __create_embedding(self, weight):
         return torch.nn.Embedding(
-            self.vocab_size, self.embed_size,
-            padding_idx=self.padding_idx, _weight=weight)
+            self.vocab_size, self.cfg.n_emb,
+            padding_idx=self.cfg.padding_idx, _weight=weight)
 
     def __create_param(self):
-        t = torch.zeros((self.vocab_size, self.embed_size), dtype=torch.float32)
-        t.uniform_(-0.5 / self.embed_size, 0.5 / self.embed_size)
-        t[self.padding_idx] = .0
+        t = torch.zeros((self.vocab_size, self.cfg.n_emb), dtype=torch.float32)
+        t.uniform_(-0.5 / self.cfg.n_emb, 0.5 / self.cfg.n_emb)
+        t[self.cfg.padding_idx] = .0
         return t
 
     def __cuda_wrap(self, data):

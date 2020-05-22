@@ -2,28 +2,44 @@ import random
 
 import torch
 
+from src.preprocesses.builder import ModelBuilder
 from src.preprocesses.corpus import Corpus
 from src.dataset.dataset import ReloadableDataset
 from src.preprocesses.preprocess import unk_idx_list
 from src.preprocesses.vocab import AsmVocab
+from src.utils.collection_op import is_collection_of
 
 
+class PVDMDataset(ReloadableDataset):
+    pass
+
+
+@ModelBuilder.register(PVDMDataset)
 class PVDMDatasetBuilder:
+    vocab: AsmVocab
+    corpus: Corpus
+    base_corpus: Corpus
 
-    def __init__(self, vocab: AsmVocab):
+    def __init__(self, vocab, corpus, base_corpus, window, ss=None):
         self.vocab = vocab
+        self.corpus = corpus
+        self.base_corpus = base_corpus
+        self.window = window
+        self.ss = ss
         self.data = []
 
-    def build(self, corpus, window, ss=None):
+    def build(self):
+        sync_corpus(self.corpus, self.base_corpus)
+
         self.data = []
         # encode in one-hot if not
-        if not _is_collection_of(corpus.idx2ins, [int]):
-            corpus.idx2ins = self.vocab.onehot_encode(corpus.idx2ins)
+        if not is_collection_of(self.corpus.idx2ins, [int]):
+            self.corpus.idx2ins = self.vocab.onehot_encode(self.corpus.idx2ins)
 
         # convert each func into a sequence of training data
-        for func_id, stmts in enumerate(corpus.idx2ins):
+        for func_id, stmts in enumerate(self.corpus.idx2ins):
             per_doc = []
-            for word, context in make_one_doc(stmts, window):
+            for word, context in make_one_doc(stmts, self.window):
                 per_doc.append((
                     torch.tensor(func_id),
                     torch.tensor(word),
@@ -33,7 +49,7 @@ class PVDMDatasetBuilder:
                 self.data.append(per_doc)
 
         maker = SubSampleDataMaker(
-            self.data, self.vocab.sub_sample_ratio(ss))
+            self.data, self.vocab.sub_sample_ratio(self.ss))
         return ReloadableDataset(maker)
 
 
@@ -80,7 +96,7 @@ def sync_corpus(train_corpus: Corpus, query_corpus: Corpus):
         corpus.n_docs = n_docs
         return corpus
 
-    return sync(train_corpus), sync(query_corpus)
+    sync(train_corpus)
 
 
 def make_one_doc(insts, window):
@@ -94,19 +110,3 @@ def make_one_doc(insts, window):
         context = lw + prev_inst + next_inst + rw
         for word in inst:
             yield word, context
-
-
-def _is_collection_of(m, cls, early_break=True):
-    """
-    Is :param m a collection of instances of :param cls
-    :param m: the collection
-    :param cls: a list of classes of the expected instance
-    :param early_break: just check one non-collection item
-    """
-    typ = type(m)
-    if typ in cls:
-        return True
-    if typ in (list, tuple, set):
-        for i in m:
-            return _is_collection_of(i, cls, early_break)
-    return False

@@ -27,7 +27,7 @@
       }
     ],
     "opts": [
-      "O2",
+      "O0",
       "O3"
     ],
     "obfs": [
@@ -61,14 +61,14 @@
       }
     ],
     "opts": [
-      "O3"
+      "O0"
     ],
     "obfs": [
       "none"
     ]
   },
   "find_corpus": {
-    "@": "BinArgs",
+    "!": "&base_corpus",
     "opts": [
       "O3"
     ]

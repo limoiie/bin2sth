@@ -39,7 +39,8 @@ def do_training(cuda, db, a):
     trainer.run(train_loader, max_epochs=a.rt.epochs)
 
     dump_model(db, getattr(a, '_id'), {
-        'word2vec': w2v.state_dict()
+        'word2vec': w2v.state_dict(),
+        'vocab': vocab
     })
 
 

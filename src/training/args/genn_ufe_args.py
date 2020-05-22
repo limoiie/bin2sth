@@ -14,9 +14,3 @@ class GENNArgs:
         self.ss = ss
         self.window = window
         self.requires = requires
-        # requires = [
-        #   'module_alias': {
-        #     'checkpoint_training_id': '....',
-        #     'checkpoint_module': 'word2vec'
-        #   }
-        # ]

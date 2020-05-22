@@ -16,8 +16,10 @@ which is the official implement of zuo2019neural.
 import fire
 import torch as t
 
-from src.database.database import load_genn_ufe_data, load_model, dump_model
+from src.database.database import load_genn_ufe_data, load_model, dump_model, \
+    load_vocab, load_cfg_corpus
 from src.models.modules.word2vec import Word2Vec
+from src.preprocesses.corpus_builder import CorpusBuilder, CorpusRecipe
 from src.training.args.genn_ufe_args import GENNArgs
 from src.training.training import train
 from src.utils.logger import get_logger
@@ -32,17 +34,30 @@ embedding_weights = \
 
 
 def do_training(cuda, db, a):
-    vocab, corpus1, corpus2, train_ds = load_genn_ufe_data(
-        db, a.ds.vocab, a.ds.base_corpus, a.ds.find_corpus)
+    # vocab, corpus1, corpus2, train_ds = load_genn_ufe_data(
+    #     db, a.ds.vocab, a.ds.base_corpus, a.ds.find_corpus)
+    vocab = load_vocab(db, a.ds.vocab)
+    # corpus1 = load_cfg_corpus(db, corpus1, vocab)
+    # corpus2 = load_cfg_corpus(db, corpus2, vocab)
 
-    from IPython import embed; embed()
+    recipe = CorpusRecipe(6, 6)
+    corpus_builder = CorpusBuilder(db, a.ds.base_corpus, recipe, vocab)
+    corpus = corpus_builder.build()
+
+    # from src.dataset.genn_ufe_dataset import GENNDatasetBuilder
+    # ds_builder = GENNDatasetBuilder()
+    # train_ds = ds_builder.build(corpus1, corpus2)
+
+    from IPython import embed
+    embed()
+
     # todo:
     #  1. load dataset;
     #    [v] build lua O0 O3 dataset
     #    [v] create supervised dataset
     #  2. load embedding
     #    [v] training an embedding
-    #    [-] store and load
+    #    [v] store and load
     #  3. load blk2vec model
     #    [-] training a blk2vec model
     #    [-] store and load
@@ -51,6 +66,7 @@ def do_training(cuda, db, a):
 
     # load model
     w2v = load_word2vec(db, a.m, vocab.size)
+    from IPython import embed; embed()
 
     # Load a trained w2v model
     # w2v = models.Word2Vec.load(embedding_weights)
@@ -88,7 +104,7 @@ def do_training(cuda, db, a):
     # trainer.run(ds, max_epochs=rt.epochs)
 
     # dump model
-    dump_model(db, a.__dict__['_id'], {
+    dump_model(db, getattr(a, '_id'), {
         'word2vec': w2v.state_dict()
     })
 
@@ -119,6 +135,7 @@ def load_word2vec(db, m, vocab_size):
     """load the model if there is a dependency"""
     w2v = Word2Vec(vocab_size, m.n_emb, no_hdn=m.no_hdn)
     if not m.requires or 'word2vec' not in m.requires:
+        logger.info('No pre-trained model is assigned, use the new model')
         return w2v
     req = m.requires['word2vec']
     state = load_model(db, req)

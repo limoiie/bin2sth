@@ -1,0 +1,73 @@
+{
+  "models": {
+    "base_ds": "PVDMDataset",
+    "find_ds": "PVDMDataset",
+    "base_model": "CBowPVDM",
+    "find_model": "CBowPVDM"
+  },
+  "models_to_save": [
+    "base_model",
+    "find_model"
+  ],
+  "vocab_recipe": {
+    "@": "VocabRecipe",
+    "min_word_freq": 3
+  },
+  "corpus_recipe": {
+    "@": "CorpusRecipe",
+    "min_fun_len": 5
+  },
+  "vocab": {
+    "data": "&ds.vocab",
+    "recipe": "&vocab_recipe"
+  },
+  "vocab_by_load": {
+    "training_id": "5ec34ed32442a629bd2bacaf",
+    "module": "vocab"
+  },
+  "base_corpus": {
+    "data": "&ds.base_corpus",
+    "recipe": "&corpus_recipe",
+    "vocab": "&vocab"
+  },
+  "find_corpus": {
+    "!": "&base_corpus",
+    "data": "&ds.find_corpus"
+  },
+  "base_ds": {
+    "vocab": "&vocab",
+    "corpus": "&base_corpus",
+    "base_corpus": "&find_corpus",
+    "window": 5,
+    "ss": 1e-3
+  },
+  "find_ds": {
+    "!": "&base_ds",
+    "corpus": "&find_corpus",
+    "base_corpus": "&base_corpus"
+  },
+  "w2v": {
+    "vocab": "&vocab",
+    "cfg": {
+      "@": "Word2VecRecipe",
+      "n_emb": 200,
+      "no_hdn": false,
+      "padding_idx": 0
+    }
+  },
+  "base_model": {
+    "w2v": "&w2v",
+    "vocab": "&vocab",
+    "corpus": "&base_corpus",
+    "args": {
+      "@": "CBowPVDMArgs",
+      "n_emb": 200,
+      "n_negs": 20,
+      "user_wr": true
+    }
+  },
+  "find_model": {
+    "!": "&base_model",
+    "corpus": "&find_corpus"
+  }
+}

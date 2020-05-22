@@ -41,3 +41,19 @@ def flat(lhs, rhs):
     for elem, vers in zip(lhs, rhs):
         for ver in vers:
             yield elem, ver
+
+
+def is_collection_of(m, cls, early_break=True):
+    """
+    Is :param m a collection of instances of :param cls
+    :param m: the collection
+    :param cls: a list of classes of the expected instance
+    :param early_break: just check one non-collection item
+    """
+    typ = type(m)
+    if typ in cls:
+        return True
+    if typ in (list, tuple, set):
+        for i in m:
+            return is_collection_of(i, cls, early_break)
+    return False
