@@ -8,10 +8,10 @@ from rx import operators as ops, Observable
 import numpy as np
 
 import src.utils.rx.operators as ops_
-from src.preprocesses.corpus import CorpusBuilder
+from src.preprocesses.corpus import CorpusMaker
 from src.ida.code_elements import Program, Function, Block
 from src.utils.logger import get_logger
-from src.preprocesses.vocab import AsmVocabBuilder
+from src.preprocesses.vocab import AsmVocabMaker
 from src.utils.rx.internal.basic import second
 
 logger = get_logger('preprocess')
@@ -207,7 +207,7 @@ class PpPadding(Pp):
 # depends on PpOutStmts ==> PpMergeBlocks ==> PpMergeProgs
 class PpVocab(Pp):
     def __init__(self, min_freq=0, max_vocab=10000):
-        self.builder = AsmVocabBuilder(min_freq, max_vocab)
+        self.builder = AsmVocabMaker(min_freq, max_vocab)
         self.builder.reset()
 
     def p(self, bag: BinBag) -> BinBag:

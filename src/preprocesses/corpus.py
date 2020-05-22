@@ -23,7 +23,7 @@ class Corpus:
         return self.doc2idx[doc]
 
 
-class CorpusBuilder:
+class CorpusMaker:
     def __init__(self):
         self.corpus = Corpus()
 

@@ -41,7 +41,7 @@ class AsmVocab:
         return word_ssr
 
 
-class AsmVocabBuilder:
+class AsmVocabMaker:
     logger = get_logger('AsmVocab')
     unk = '<unk>'
 

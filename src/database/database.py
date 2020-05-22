@@ -11,9 +11,9 @@ from src.training.args.train_args import BinArgs, RuntimeArgs, TrainArgs
 from src.dataset.pvdm_dataset import PVDMDatasetBuilder, sync_corpus
 from src.dataset.genn_ufe_dataset import GENNDatasetBuilder
 from src.dataset.word2vec_datset import Word2VecDatasetBuilder
-from src.preprocesses.cfg_corpus import CfgCorpusBuilder
+from src.preprocesses.cfg_corpus import CfgCorpusMaker
 from src.dataset.nmt_inspired_dataset import NMTInsDataEnd
-from src.preprocesses.corpus import CorpusBuilder
+from src.preprocesses.corpus import CorpusMaker
 from src.preprocesses.preprocess import BinBag
 from src.utils.auto_json import AutoJson
 from src.utils.json_utils import obj_update
@@ -91,7 +91,7 @@ def load_corpus(db, args: BinArgs, vocab):
         pp.PpTokenizer().as_map(),
         pp.PpOneHotEncoder(vocab).as_map(),
         pp.PpMergeFuncs().as_map(),
-        pp.PpCorpus(CorpusBuilder()).as_map()
+        pp.PpCorpus(CorpusMaker()).as_map()
     ).run().corpus.run()
 
 
@@ -105,7 +105,7 @@ def load_cfg_corpus(db, args: BinArgs, vocab):
         pp.PpOneHotEncoder(vocab).as_map(),
         pp.PpCfgAdj().as_map(),
         pp.PpMergeFuncs().as_map(),
-        pp.PpCorpus(CfgCorpusBuilder()).as_map()  # build cfg corpus
+        pp.PpCorpus(CfgCorpusMaker()).as_map()  # build cfg corpus
     ).run().corpus.run()
 
 
@@ -137,7 +137,7 @@ def load_corpus_with_padding(db, args: BinArgs, vocab, maxlen, minlen=5):
         pp.PpOneHotEncoder(vocab).as_map(),
         pp.PpPadding(maxlen, 0).as_map(),
         pp.PpMergeFuncs().as_map(),
-        pp.PpCorpus(CorpusBuilder()).as_map()
+        pp.PpCorpus(CorpusMaker()).as_map()
     ).run()
     return bb.corpus.run()
 

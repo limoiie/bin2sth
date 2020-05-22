@@ -1,5 +1,5 @@
 from src.ida.code_elements import Function
-from src.preprocesses.corpus import Corpus, CorpusBuilder
+from src.preprocesses.corpus import Corpus, CorpusMaker
 
 
 class CfgCorpus(Corpus):
@@ -15,7 +15,7 @@ class CfgCorpus(Corpus):
         self.cfg_adj = []
 
 
-class CfgCorpusBuilder(CorpusBuilder):
+class CfgCorpusMaker(CorpusMaker):
     def __init__(self):
         super().__init__()
         self.corpus = CfgCorpus()
