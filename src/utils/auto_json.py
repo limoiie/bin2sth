@@ -77,21 +77,21 @@ class AutoJson(object):
     @staticmethod
     def from_dict(data):
         typ = type(data)
-        if typ is list:
+        if isinstance(data, list):
             return [AutoJson.from_dict(v) for v in data]
-        if typ is set:
+        if isinstance(data, set):
             return {AutoJson.from_dict(v) for v in data}
-        if typ is dict:
-            dic = {
-                AutoJson.from_dict(k): AutoJson.from_dict(v)
-                for k, v in data.items()
-            }
-            if _json_cls_key in dic:
-                if dic[_json_cls_key] not in _Register.id_cls:
-                    raise ValueError(F'Not registered: {dic[_json_cls_key]}')
-                Cls = _Register.id_cls[dic[_json_cls_key]]
-                del dic[_json_cls_key]
+        if isinstance(data, dict):
+            new_data = typ()
+            for k, v in data.items():
+                new_data[AutoJson.from_dict(k)] = AutoJson.from_dict(v)
+            data = new_data
+            if _json_cls_key in data:
+                if data[_json_cls_key] not in _Register.id_cls:
+                    raise ValueError(F'Not registered: {data[_json_cls_key]}')
+                Cls = _Register.id_cls[data[_json_cls_key]]
+                del data[_json_cls_key]
                 obj = Cls()
-                obj.__dict__.update(dic)
+                obj.__dict__.update(data)
                 return obj
         return data
