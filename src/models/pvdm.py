@@ -3,7 +3,7 @@ import numpy as np
 
 from src.models.model import UnSupervisedModule
 from src.models.modules.word2vec import Word2Vec
-from src.preprocesses.builder import ModelBuilder
+from src.preprocesses.builder import ModelBuilder, ModelKeeper
 from src.preprocesses.corpus import Corpus
 from src.preprocesses.vocab import AsmVocab
 from src.utils.auto_json import auto_json

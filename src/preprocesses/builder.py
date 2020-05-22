@@ -17,15 +17,22 @@ class ModelBuilder:
                 raise RuntimeError(f'A Builder has already been registered for'
                                    f'{RawCls}!')
             ModelBuilder.__register[RawCls] = Builder
-            ModelBuilder.register_cls(RawCls)
+            ModelBuilder.__register_raw[RawCls.__name__] = RawCls
             return Builder
         return f
 
     @staticmethod
     def register_cls(Cls):
-        if Cls.__name__ in ModelBuilder.__register_raw:
-            raise RuntimeError(f'{Cls} already been registered!')
-        ModelBuilder.__register_raw[Cls.__name__] = Cls
+        # noinspection PyUnusedLocal
+        @ModelBuilder.register(Cls)
+        class F(ModelBuilder):
+            def __init__(self, **args):
+                self.f = lambda: Cls(**args)
+
+            def build(self):
+                return self.f()
+
+        setattr(F, '__annotations__', Cls.__annotations__)
         return Cls
 
     def build(self, *args, **kwargs):

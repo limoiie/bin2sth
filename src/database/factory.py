@@ -14,28 +14,28 @@ class Factory:
 
     @staticmethod
     def load_instance(Cls, args):
-        logger.info(f'Start loading {Cls}...')
+        args_recipe = AutoJson.to_dict(args)
+        logger.info(f'Start loading {Cls} with \n\t {args_recipe}...')
+
         key = hash_args(args)
         if key in Factory.__cache:
             logger.info(f'Find in cache for args: {args}, use this')
-            return Factory.__cache[key]
-
-        if isinstance(args, CheckPointEntry):
+            model = Factory.__cache[key]
+        elif isinstance(args, CheckPointEntry):
             model_state = Repository.find_checkpoint_entry(args)
             keeper = ModelKeeper.instance(Cls)
             model = keeper.from_state(model_state)
         else:
             Builder = ModelBuilder.clazz(Cls)
-            if Builder:
-                # build with recipe args
-                _load_dependency(Builder, args)
-                model = Builder(**args).build()
-            else:
-                _load_dependency(Cls, args)
-                model = Cls(**args)
+            _load_dependency(Builder, args)
+            model = Builder(**args).build()
 
-        logger.info(f'Finish loading {Cls}')
+        # embed the recipe into the model in case the model depends on
+        # some other model which may not exist at the time of saving
+        setattr(model, '__recipe__', args_recipe)
+        # cache the model incase of redundant creation
         Factory.__cache[key] = model
+        logger.info(f'Finish loading {Cls}')
         return model
 
     @staticmethod
@@ -44,7 +44,6 @@ class Factory:
             Cls = type(model)
             logger.info(f'Getting state from <{name}> of {Cls}...')
             keeper: ModelKeeper = ModelKeeper.instance(Cls)
-
             state = keeper.state(model)
             logger.info(f'Saving checkpoints...')
             Repository.save_checkpoint_entry(
