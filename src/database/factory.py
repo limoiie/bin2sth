@@ -31,8 +31,11 @@ class Factory:
             model = Builder(**args).build()
 
         # embed the recipe into the model in case the model depends on
-        # some other model which may not exist at the time of saving
-        setattr(model, '__recipe__', args_recipe)
+        # some other model which may not exist at the time of saving.
+        # NOTE: now i save the model directly instead of saving the recipe
+        # since it is not enough to restore some model from only recipe,
+        # there may still need a training process
+        # setattr(model, '__recipe__', args_recipe)
         # cache the model incase of redundant creation
         Factory.__cache[key] = model
         logger.info(f'Finish loading {Cls}')
@@ -54,10 +57,6 @@ class Factory:
 def hash_args(obj):
     dic = AutoJson.to_dict(obj)
     return hash(json.dumps(dic, sort_keys=True))
-
-
-def is_checkpoint_args(args):
-    return 'training_id' in args and 'module' in args
 
 
 def _load_dependency(Builder: type, args):

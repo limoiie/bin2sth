@@ -1,9 +1,12 @@
-import torch
+from typing import Optional
+
 import numpy as np
+import torch
+from torch.nn import Embedding
 
 from src.models.model import UnSupervisedModule
 from src.models.modules.word2vec import Word2Vec
-from src.preprocesses.builder import ModelBuilder, ModelKeeper
+from src.preprocesses.builder import ModelBuilder, ModelKeeper, WholeModelKeeper
 from src.preprocesses.corpus import Corpus
 from src.preprocesses.vocab import AsmVocab
 from src.utils.auto_json import auto_json
@@ -53,21 +56,23 @@ class CBowPVDM(UnSupervisedModule):
 
     logger = get_logger('CBowPVDM')
 
-    def __init__(self, w2v, vocab, corpus, args):
+    def __init__(self, w2v=None, vocab=None, corpus=None, args=None):
         super(CBowPVDM, self).__init__()
 
         self.args = args
         self.w2v = w2v
-        self.vocab_size = vocab.size
-        self.corpus_size = corpus.n_docs
+        self.vocab_size = 0
+        self.corpus_size = 0
         self.neg_samp_dist = None
+        self.f2v: Optional[Embedding] = None
 
-        self.f2v = torch.nn.Embedding(
-            self.corpus_size, self.args.n_emb, _weight=self.__init_weights())
-
-        if args.use_wr:
-            t = np.power(self.vocab.word_freq_ratio(), 0.75)
-            self.neg_samp_dist = torch.from_numpy(t / t.sum())
+        if vocab is not None:
+            self.vocab_size = vocab.size
+            self.corpus_size = corpus.n_docs
+            self.init_param()
+            if args.use_wr:
+                t = np.power(self.vocab.word_freq_ratio(), 0.75)
+                self.neg_samp_dist = torch.from_numpy(t / t.sum())
 
     def forward(self, input_batch):
         fun, word, context = input_batch
@@ -95,6 +100,10 @@ class CBowPVDM(UnSupervisedModule):
         # return loss, sam_vec.abs().mean()
         return loss
 
+    def init_param(self):
+        self.f2v = torch.nn.Embedding(self.corpus_size, self.args.n_emb,
+                                      _weight=self.__init_weights())
+
     def __init_weights(self):
         t = torch.zeros(self.corpus_size, self.args.n_emb)
         t.uniform_(-0.5 / self.args.n_emb, 0.5 / self.args.n_emb)
@@ -118,6 +127,32 @@ class CBowPVDM(UnSupervisedModule):
         # NOTE: I modify [0, vocab_size-1] to [1, vocab_size]
         return torch.zeros(batch_size, self.args.n_negs) \
             .uniform_(1, self.vocab_size).long()
+
+
+@ModelKeeper.register(CBowPVDM)
+class CBowPVDMKeeper(ModelKeeper):
+    def from_state(self, state):
+        model = CBowPVDM()
+        keeper = ModelKeeper.instance(Word2Vec)
+        model.args = state['args']
+        model.vocab_size = state['vocab_size']
+        model.corpus_size = state['corpus_size']
+        model.neg_samp_dist = state['neg_samp_dist']
+        model.init_param()
+        model.f2v.load_state_dict(state['f2v'])
+        model.w2v = keeper.from_state(state['w2v'])
+        return model
+
+    def state(self, model: CBowPVDM):
+        keeper = ModelKeeper.instance(Word2Vec)
+        return {
+            'args': model.args,
+            'vocab_size': model.vocab_size,
+            'corpus_size': model.corpus_size,
+            'f2v': model.f2v.state_dict(),
+            'neg_samp_dist': model.neg_samp_dist,
+            'w2v': keeper.state(model.w2v)
+        }
 
 
 def doc_eval_transform(output):

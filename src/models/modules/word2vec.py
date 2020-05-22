@@ -1,6 +1,9 @@
-import torch
+from typing import Optional
 
-from src.preprocesses.builder import ModelBuilder
+import torch
+from torch.nn import Embedding
+
+from src.preprocesses.builder import ModelBuilder, ModelKeeper
 from src.preprocesses.vocab import AsmVocab
 from src.utils.auto_json import auto_json
 
@@ -17,18 +20,17 @@ class Word2VecRecipe:
 class Word2Vec(torch.nn.Module):
     vocab: AsmVocab
 
-    def __init__(self, vocab, cfg):
+    def __init__(self, vocab=None, cfg=None):
         super(Word2Vec, self).__init__()
-
-        self.vocab_size = vocab.size
+        self.idx2vec: Optional[Embedding] = None
+        self.idx2hdn: Optional[Embedding] = None
         self.cfg = cfg
 
-        self.idx2vec = self.__create_embedding(
-            self.__create_param())
-        self.idx2hdn = self.idx2vec
-        if not self.cfg.no_hdn:
-            self.idx2hdn = self.__create_embedding(
-                self.__create_param())
+        if vocab is None:
+            self.vocab_size = 0
+        else:
+            self.vocab_size = vocab.size
+            self.init_param()
 
     def forward(self, idx):
         return self.forward_vec(idx)
@@ -47,6 +49,14 @@ class Word2Vec(torch.nn.Module):
         for p in self.parameters():
             p.required_grad = True
 
+    def init_param(self):
+        self.idx2vec = self.__create_embedding(
+            self.__create_param())
+        self.idx2hdn = self.idx2vec
+        if not self.cfg.no_hdn:
+            self.idx2hdn = self.__create_embedding(
+                self.__create_param())
+
     def __create_embedding(self, weight):
         return torch.nn.Embedding(
             self.vocab_size, self.cfg.n_emb,
@@ -60,6 +70,28 @@ class Word2Vec(torch.nn.Module):
 
     def __cuda_wrap(self, data):
         return data.to(self.idx2vec.weight.device)
+
+
+@ModelKeeper.register(Word2Vec)
+class Word2VecKeeper(ModelKeeper):
+    def from_state(self, state):
+        model = Word2Vec()
+        model.cfg = state['cfg']
+        model.vocab_size = state['vocab_size']
+        model.init_param()
+        model.idx2vec.load_state_dict(state['idx2vec'])
+        model.idx2hdn.load_state_dict(state['idx2hdn'])
+        if model.cfg.no_hdn:
+            model.idx2hdn = model.idx2vec
+        return model
+
+    def state(self, model: Word2Vec):
+        return {
+            'vocab_size': model.vocab_size,
+            'cfg': model.cfg,
+            'idx2vec': model.idx2vec.state_dict(),
+            'idx2hdn': model.idx2hdn.state_dict()
+        }
 
 
 class CBow(torch.nn.Module):

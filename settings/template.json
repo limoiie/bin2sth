@@ -6,8 +6,6 @@
     "find_model": "CBowPVDM"
   },
   "models_to_save": [
-    "base_model",
-    "find_model"
   ],
   "corpus_recipe": {
     "@": "CorpusRecipe",
@@ -40,15 +38,16 @@
     "base_corpus": "&base_corpus"
   },
   "w2v": {
-    "vocab": "&vocab",
-    "cfg": {
-      "@": "Word2VecRecipe",
-      "n_emb": 200,
-      "no_hdn": false,
-      "padding_idx": 0
-    }
+    "@": "CheckPointEntry",
+    "training_id": "5ec80a0d0df5527c2f213b7b",
+    "name": "w2v"
   },
   "base_model": {
+    "@": "CheckPointEntry",
+    "training_id": "5ec80a7ef1827f1fb8cbf872",
+    "name": "base_model"
+  },
+  "find_model": {
     "w2v": "&w2v",
     "vocab": "&vocab",
     "corpus": "&base_corpus",
@@ -58,9 +57,5 @@
       "n_negs": 20,
       "user_wr": true
     }
-  },
-  "find_model": {
-    "!": "&base_model",
-    "corpus": "&find_corpus"
   }
 }
