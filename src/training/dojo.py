@@ -7,7 +7,8 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from src.database.dao import to_filter
-from src.database.factory import Factory, Repository
+from src.database.factory import Factory
+from src.database.repository import Repository
 from src.models.pvdm import CBowPVDM, doc_eval_flatten_transform, \
     doc_eval_transform
 from src.preprocesses.arg_parser import ArgsParser

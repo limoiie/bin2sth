@@ -1,7 +1,7 @@
 from bson import ObjectId
 from gridfs import GridFS
 
-from src.database.beans.check_point import CheckPoint, CheckPointEntry
+from src.database.beans.check_point import CheckPointEntry
 from src.database.dao import Dao, to_filter
 from src.database.database import get_database
 from src.ida.code_elements import Program
@@ -17,24 +17,6 @@ class Repository:
     @staticmethod
     def dao(Cls):
         return Dao.instance(Cls, Repository.db, Repository.fs)
-
-    @staticmethod
-    def find_model(args):
-        id_, mod = args['training_id'], args['module']
-        dao = Repository.dao(CheckPoint)
-        cp = dao.find_one({'training_id': ObjectId(id_)})
-        if cp and mod in cp.checkpoints:
-            return cp.checkpoints[mod]
-        raise RuntimeError(f'Not found such checkpoint: '
-                           f'training_id: {id_}, module: {mod}')
-
-    @staticmethod
-    def save_model(cp):
-        dao = Repository.dao(CheckPoint)
-        if not dao.find_one({'training_id': cp.training_id}):
-            return dao.store_one(cp)
-        raise RuntimeError(f'There already is a checkpoint with '
-                           f'training_id: {cp.training_id}!')
 
     @staticmethod
     def find_checkpoint_entry(filtor):

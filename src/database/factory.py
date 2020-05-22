@@ -1,6 +1,6 @@
 import json
 
-from src.database.beans.check_point import CheckPoint, CheckPointEntry
+from src.database.beans.check_point import CheckPointEntry
 from src.database.repository import Repository
 from src.preprocesses.builder import ModelKeeper, ModelBuilder
 from src.utils.auto_json import AutoJson

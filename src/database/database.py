@@ -4,7 +4,7 @@ from gridfs import GridFS
 from pymongo import MongoClient
 
 import src.preprocesses.preprocess as pp
-from src.database.beans.check_point import CheckPoint
+
 from src.database.dao import Dao, to_filter
 from src.ida.code_elements import Program
 from src.training.args.train_args import BinArgs, RuntimeArgs, TrainArgs
@@ -187,25 +187,25 @@ def load_genn_ufe_data(db, vocab_args, args1, args2):
     return vocab, corpus1, corpus2, train_ds
 
 
-def load_model(db, require):
-    id_, mod = require['training_id'], require['module']
-    dao = Dao.instance(CheckPoint, db, GridFS(db))
-    cp = dao.find_one({'training_id': ObjectId(id_)})
-    if cp and mod in cp.checkpoints:
-        return cp.checkpoints[mod]
-    raise RuntimeError(f'No such checkpoint found: '
-                       f'training_id: {id_},'
-                       f'module: {mod}')
-
-
-def dump_model(db, id_, cp):
-    dao = Dao.instance(CheckPoint, db, GridFS(db))
-    if not dao.id_one({'training_id': id_}):
-        return dao.store_one(CheckPoint(id_, cp))
-    raise RuntimeError(f'There already is a checkpoint for this training '
-                       f'process: {id_}')
-
-
-def remove_checkpoint(db, training_id):
-    dao = Dao.instance(CheckPoint, db, GridFS(db))
-    dao.delete({'training_id': training_id})
+# def load_model(db, require):
+#     id_, mod = require['training_id'], require['module']
+#     dao = Dao.instance(CheckPoint, db, GridFS(db))
+#     cp = dao.find_one({'training_id': ObjectId(id_)})
+#     if cp and mod in cp.checkpoints:
+#         return cp.checkpoints[mod]
+#     raise RuntimeError(f'No such checkpoint found: '
+#                        f'training_id: {id_},'
+#                        f'module: {mod}')
+#
+#
+# def dump_model(db, id_, cp):
+#     dao = Dao.instance(CheckPoint, db, GridFS(db))
+#     if not dao.id_one({'training_id': id_}):
+#         return dao.store_one(CheckPoint(id_, cp))
+#     raise RuntimeError(f'There already is a checkpoint for this training '
+#                        f'process: {id_}')
+#
+#
+# def remove_checkpoint(db, training_id):
+#     dao = Dao.instance(CheckPoint, db, GridFS(db))
+#     dao.delete({'training_id': training_id})
