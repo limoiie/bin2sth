@@ -69,7 +69,7 @@
     "obfs": []
   },
   "find_corpus": {
-    "@": "BinArgs",
+    "!": "&base_corpus",
     "archs": [
       {
         "@": "Arch",

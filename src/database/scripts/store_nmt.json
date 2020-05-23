@@ -1,0 +1,27 @@
+{
+  "models": {
+    "w2v": "Word2Vec",
+    "vocab": "AsmVocab"
+  },
+  "vocab": {
+    "data": "&ds.vocab",
+    "recipe": {
+      "@": "VocabRecipe",
+      "min_word_freq": 0,
+      "to_token": false
+    }
+  },
+  "models_to_save": [
+    "vocab",
+    "w2v"
+  ],
+  "w2v": {
+    "vocab": "&vocab",
+    "cfg": {
+      "@": "Word2VecRecipe",
+      "n_emb": 100,
+      "no_hdn": false,
+      "padding_idx": 0
+    }
+  }
+}

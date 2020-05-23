@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import rx
 
 import src.preprocesses.preprocess as pp
@@ -9,10 +11,15 @@ from src.training.args.train_args import BinArgs
 from src.utils.auto_json import auto_json
 
 
+class CorpusRecipeBase:
+    def make(self, vocab):
+        raise NotImplementedError()
+
+
 @auto_json
-class CorpusRecipe:
-    def __init__(self, min_fun_len=5):
-        self.min_fun_len = min_fun_len
+@dataclass
+class CorpusRecipe(CorpusRecipeBase):
+    min_fun_len: int = 5
 
     def make(self, vocab):
         return [
@@ -26,13 +33,31 @@ class CorpusRecipe:
         ]
 
 
+@auto_json
+@dataclass
+class CorpusSeqRecipe(CorpusRecipeBase):
+    min_fun_len: int = 5
+    max_seq_len: int = 150
+
+    def make(self, vocab):
+        return [
+            pp.PpFullLabel(),
+            pp.PpMergeBlocks(),
+            pp.PpFilterFunc(minlen=self.min_fun_len),
+            pp.PpOneHotEncoder(vocab),
+            pp.PpPadding(self.max_seq_len, 0),
+            pp.PpMergeFuncs(),
+            pp.PpCorpus(CorpusMaker())
+        ]
+
+
 @ModelBuilder.register(Corpus)
 class CorpusBuilder(ModelBuilder):
     vocab: AsmVocab
 
     def __init__(self, data, recipe, vocab):
         self.data: BinArgs = data
-        self.recipe: CorpusRecipe = recipe
+        self.recipe: CorpusRecipeBase = recipe
         self.vocab: AsmVocab = vocab
 
     def build(self):

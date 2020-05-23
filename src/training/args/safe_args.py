@@ -3,8 +3,9 @@ from src.utils.auto_json import auto_json
 
 @auto_json
 class SAFEArgs:
-    def __init__(self, n_emb, n_rnn_state, rnn_depth, max_seq_len,
-                 atten_hops, atten_depth, n_dense_layer):
+    def __init__(self, n_emb=None, n_rnn_state=None, rnn_depth=None,
+                 max_seq_len=None, atten_hops=None, atten_depth=None,
+                 n_dense_layer=None):
         # network configs
         self.n_emb = n_emb  # dimension of the function embedding
 

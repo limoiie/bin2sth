@@ -14,15 +14,16 @@ from src.utils.auto_json import auto_json
 @dataclass
 class VocabRecipe:
     min_word_freq: int = 0
+    to_token: bool = True
 
     def make(self):
-        return [
+        return filter(None, [
             pp.PpMergeBlocks(),
-            pp.PpTokenizer(),
+            pp.PpTokenizer() if self.to_token else None,
             pp.PpMergeFuncs(),
             pp.PpOutStmts(),
             pp.PpVocab(min_freq=self.min_word_freq)
-        ]
+        ])
 
 
 @ModelBuilder.register(AsmVocab)
@@ -30,7 +31,7 @@ class VocabBuilder(ModelBuilder):
 
     def __init__(self, data, recipe):
         self.data: BinArgs = data
-        self.recipe: VocabRecipe = recipe
+        self.recipe = recipe
 
     def build(self) -> AsmVocab:
         data = pp.BinBag(Repository.find_prog(self.data))

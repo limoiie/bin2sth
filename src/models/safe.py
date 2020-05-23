@@ -24,25 +24,39 @@ which is the official implement of massarelli2019safe.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import Embedding
 from torch.nn.parameter import Parameter
 
+from src.models.builder import ModelBuilder
 from src.models.model import layer_trainable
+from src.models.modules.word2vec import Word2Vec, Word2VecRecipe
+from src.preprocesses.vocab import AsmVocab
 from src.training.args.safe_args import SAFEArgs
 
 
+@ModelBuilder.register_cls
 class SAFE(nn.Module):
-    def __init__(self, config: SAFEArgs, vocab_size, embedding):
+    vocab: AsmVocab
+    w2v: Word2Vec
+
+    def __init__(self, conf, vocab=None, w2v=None, vocab_size=0):
         super(SAFE, self).__init__()
 
-        self.conf = config
+        self.conf: SAFEArgs = conf
+        self.instructions_embeddings: Embedding
+        self.bidirectional_rnn: torch.nn.GRU
+        self.WS1: Parameter
+        self.WS2: Parameter
+        self.dense_1: torch.nn.Linear
+        self.dense_2: torch.nn.Linear
 
-        # self.instructions_embeddings = torch.nn.Embedding(
-        #     self.conf.num_embeddings, self.conf.embedding_size
-        # )
+        vocab_size = vocab_size or vocab.size
+        weight = None
+        if w2v is not None:
+            weight = w2v.idx2hdn.weight.clone().detach()
         self.instructions_embeddings = torch.nn.Embedding(
-            vocab_size, self.conf.n_emb,
-            _weight=embedding.clone().detach())
-        layer_trainable(self.instructions_embeddings, False)
+            vocab_size, self.conf.n_emb, _weight=weight)
+        layer_trainable(self.instructions_embeddings, w2v is None)
 
         self.bidirectional_rnn = torch.nn.GRU(
             input_size=self.conf.n_emb,
@@ -112,3 +126,12 @@ class SAFE(nn.Module):
         function_embedding = F.normalize(self.dense_2(dense_1_out), dim=1, p=2)
 
         return function_embedding, A.mean(dim=0)
+
+
+def out_transform_for_safe(_x, y, o):
+    """
+    Unwrap each output of :class SAFE under the siamese architecture so
+    that it is acceptable for siamese metric
+    """
+    (o1, _), (o2, _) = o
+    return (o1, o2), y

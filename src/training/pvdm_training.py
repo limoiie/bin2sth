@@ -53,9 +53,7 @@ def _collect_fn(batch):
     for doc in batch:
         labels.append(doc[0][0])
         for f, w, c in doc:
-            func.append(f)
-            word.append(w)
-            ctx.append(c)
+            func.append(f), word.append(w), ctx.append(c)
     return (torch.stack(func), torch.stack(word),
             torch.stack(ctx)), torch.stack(labels)
 

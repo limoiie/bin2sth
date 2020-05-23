@@ -1,0 +1,49 @@
+{
+  "models": {
+    "dataset": "SAFELegacyDataset",
+    "safe": "SAFE"
+  },
+  "models_to_save": [],
+  "vocab": {
+    "@": "CheckPointEntry",
+    "training_id": "5ec91cebda2f5945be5eca67",
+    "name": "vocab"
+  },
+  "corpus1": {
+    "vocab": "&vocab",
+    "data": "&ds.base_corpus",
+    "recipe": {
+      "@": "CorpusSeqRecipe",
+      "min_fun_len": 0,
+      "max_seq_len": 150
+    }
+  },
+  "corpus2": {
+    "!": "&corpus1",
+    "data": "&ds.find_corpus"
+  },
+  "dataset": {
+    "vocab": "&vocab",
+    "corpus1": "&corpus1",
+    "corpus2": "&corpus2"
+  },
+  "w2v": {
+    "@": "CheckPointEntry",
+    "training_id": "5ec91cebda2f5945be5eca67",
+    "name": "w2v"
+  },
+  "safe": {
+    "conf": {
+      "@": "SAFEArgs",
+      "n_emb": 100,
+      "n_rnn_state": 50,
+      "rnn_depth": 1,
+      "max_seq_len": 150,
+      "atten_hops": 10,
+      "atten_depth": 250,
+      "n_dense_layer": 2000
+    },
+    "vocab": "&vocab",
+    "w2v": "&w2v"
+  }
+}

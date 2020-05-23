@@ -1,6 +1,6 @@
 import random
 
-from src.preprocesses.dataset import SupervisedDataset
+from src.preprocesses.dataset.dataset import SupervisedDataset
 
 random.seed(10)
 
