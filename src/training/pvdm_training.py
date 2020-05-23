@@ -2,73 +2,50 @@ import fire
 import torch
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics import ROC_AUC
-from ignite.metrics import RunningAverage, TopKCategoricalAccuracy
+from ignite.metrics import TopKCategoricalAccuracy
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from src.database.database import load_pvdm_data, dump_model
-from src.models.modules.word2vec import Word2Vec
-from src.models.pvdm import CBowPVDM, FuncEmbedding, \
-    doc_eval_transform, doc_eval_flatten_transform
-from src.training.args.pvdm_args import PVDMArgs
-from src.training.args.train_args import TrainArgs
-from src.training.build_engine import \
-    create_unsupervised_trainer, create_unsupervised_training_evaluator
-from src.training.genn_ufe_training import load_word2vec
-from src.training.training import attach_unsupervised_evaluator, train
+from src.models.pvdm import doc_eval_flatten_transform, doc_eval_transform
+from src.training.build_engine import create_unsupervised_trainer, \
+    create_unsupervised_training_evaluator
+from src.training.training import attach_unsupervised_evaluator, \
+    show_batch_loss_bar, train
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
 
 
-def do_training(cuda, db, a: TrainArgs):
-    assert isinstance(a.m, PVDMArgs)
-    vocab, train_corpus, query_corpus, train_ds, query_ds = \
-        load_pvdm_data(db, a.ds.vocab, a.ds.base_corpus, a.ds.find_corpus,
-                       a.m.window, a.m.ss)
-    train_loader = DataLoader(
-        train_ds, batch_size=a.rt.n_batch, collate_fn=_collect_fn)
-    query_loader = DataLoader(
-        query_ds, batch_size=a.rt.n_batch, collate_fn=_collect_fn)
+def do_training(cuda, args):
+    models = args.m.models
+    base_ds, find_ds = models['base_ds'], models['find_ds']
+    train_loader = DataLoader(base_ds, args.rt.n_batch, collate_fn=_collect_fn)
+    query_loader = DataLoader(find_ds, args.rt.n_batch, collate_fn=_collect_fn)
 
-    w2v: Word2Vec = load_word2vec(db, a.m, vocab.size)
+    base_model, find_model = models['base_model'], models['find_model']
+    find_model.w2v = None
 
-    tf_embedding = FuncEmbedding(train_corpus.n_docs, a.m.n_emb)
-    qf_embedding = FuncEmbedding(query_corpus.n_docs, a.m.n_emb)
-
-    ws = vocab.word_freq_ratio()
-    train_model = CBowPVDM(w2v, tf_embedding, vocab.size, a.m.n_negs, ws)
-    query_model = CBowPVDM(None, qf_embedding, vocab.size, a.m.n_negs, ws)
-
-    train_optim = Adam(train_model.parameters(), lr=a.rt.init_lr)
-    query_optim = Adam(query_model.parameters(), lr=a.rt.init_lr)
-
-    query_model.w2v = train_model.w2v
+    train_optim = Adam(base_model.parameters(), lr=args.rt.init_lr)
+    query_optim = Adam(find_model.parameters(), lr=args.rt.init_lr)
+    find_model.w2v = base_model.w2v
 
     trainer = create_unsupervised_trainer(
-        train_model, train_optim, device=cuda)
+        base_model, train_optim, device=cuda)
     evaluator = create_unsupervised_training_evaluator(
-        train_model, query_model, query_optim,
+        base_model, find_model, query_optim,
         metrics={
             'auc': ROC_AUC(doc_eval_flatten_transform),
             'topk-acc': TopKCategoricalAccuracy(
                 k=1, output_transform=doc_eval_transform)
         }, device=cuda)
 
-    train_ds.attach(trainer)  # re-sub-sample the dataset for each epoch
-    query_ds.attach(evaluator)  # re-subsample the dataset for each epoch
+    base_ds.attach(trainer)  # re-sub-sample the dataset for each epoch
+    find_ds.attach(evaluator)  # re-subsample the dataset for each epoch
 
     attach_unsupervised_evaluator(trainer, evaluator, query_loader)
+    show_batch_loss_bar(trainer, ProgressBar())
 
-    RunningAverage(output_transform=lambda x: x).attach(trainer, 'batch_loss')
-    pbar = ProgressBar()
-    pbar.attach(trainer, ['batch_loss'])
-
-    trainer.run(train_loader, max_epochs=a.rt.epochs)
-
-    dump_model(db, getattr(a, '_id'), {
-        'word2vec': w2v.state_dict()
-    })
+    trainer.run(train_loader, max_epochs=args.rt.epochs)
 
 
 def _collect_fn(batch):
@@ -83,5 +60,5 @@ def _collect_fn(batch):
             torch.stack(ctx)), torch.stack(labels)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     fire.Fire(train(do_training))
