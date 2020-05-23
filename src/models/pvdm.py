@@ -1,39 +1,29 @@
-from dataclasses import dataclass
 from typing import Optional
 
-import numpy as np
 import torch
 from torch.nn import Embedding
 
 from src.models.model import UnSupervisedModule
-from src.models.modules.word2vec import Word2Vec
+from src.models.modules.word2vec import Word2Vec, NegSample
 from src.models.builder import ModelBuilder
 from src.preprocesses.corpus import Corpus
 from src.preprocesses.vocab import AsmVocab
-from src.utils.auto_json import auto_json
 from src.utils.logger import get_logger
-
-
-@auto_json
-@dataclass
-class CBowPVDMArgs:
-    n_emb: int = 0
-    n_negs: int = 0
-    use_wr: bool = False
 
 
 @ModelBuilder.register_cls
 class CBowPVDM(UnSupervisedModule):
     w2v: Word2Vec
+    sampler: NegSample
     vocab: AsmVocab
     corpus: Corpus
 
     logger = get_logger('CBowPVDM')
 
-    def __init__(self, w2v=None, vocab=None, corpus=None, args=None):
+    def __init__(self, w2v=None, sampler=None, vocab=None, corpus=None):
         super(CBowPVDM, self).__init__()
 
-        self.args = args
+        self.sampler = sampler
         self.w2v = w2v
         self.vocab_size = 0
         self.corpus_size = 0
@@ -44,14 +34,11 @@ class CBowPVDM(UnSupervisedModule):
             self.vocab_size = vocab.size
             self.corpus_size = corpus.n_docs
             self.init_param()
-            if args.use_wr:
-                t = np.power(self.vocab.word_freq_ratio(), 0.75)
-                self.neg_samp_dist = torch.from_numpy(t / t.sum())
 
     def forward(self, input_batch):
         fun, word, context = input_batch
         batch_size = word.size()[0]
-        neg_words = self.__neg_sample(batch_size)
+        neg_words = self.sampler.neg_sample(batch_size)
 
         # batch_size * 1 * embed_size
         cur_vec = self.w2v.forward_hdn(word).unsqueeze(1)
@@ -75,32 +62,16 @@ class CBowPVDM(UnSupervisedModule):
         return loss
 
     def init_param(self):
-        self.f2v = torch.nn.Embedding(self.corpus_size, self.args.n_emb,
+        self.f2v = torch.nn.Embedding(self.corpus_size, self.w2v.cfg.n_emb,
                                       _weight=self.__init_weights())
 
     def __init_weights(self):
-        t = torch.zeros(self.corpus_size, self.args.n_emb)
-        t.uniform_(-0.5 / self.args.n_emb, 0.5 / self.args.n_emb)
+        t = torch.zeros(self.corpus_size, self.w2v.cfg.n_emb)
+        t.uniform_(-0.5 / self.w2v.cfg.n_emb, 0.5 / self.w2v.cfg.n_emb)
         return t
 
     def interested_out(self):
         return self.w2v, self.f2v
-
-    def __neg_sample(self, batch_size):
-        if self.neg_samp_dist is not None:
-            return self.__neg_sample_in_dist(batch_size)
-        else:
-            return self.__neg_sample_in_uniform(batch_size)
-
-    def __neg_sample_in_dist(self, batch_size):
-        return torch.multinomial(
-            self.neg_samp_dist, batch_size * self.args.n_negs,
-            replacement=True).view(batch_size, -1)
-
-    def __neg_sample_in_uniform(self, batch_size):
-        # NOTE: I modify [0, vocab_size-1] to [1, vocab_size]
-        return torch.zeros(batch_size, self.args.n_negs) \
-            .uniform_(1, self.vocab_size).long()
 
 
 def doc_eval_transform(output):

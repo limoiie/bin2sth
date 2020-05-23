@@ -1,54 +1,36 @@
 import fire
+import torch
 from ignite.contrib.handlers import ProgressBar
-from ignite.metrics import RunningAverage
-from ignite.utils import convert_tensor
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from src.database.database import load_word2vec_data, dump_model
-from src.models.modules.word2vec import Word2Vec, CBow, NegSample
 from src.training.build_engine import \
     create_unsupervised_trainer
-from src.training.genn_ufe_training import load_word2vec
-from src.training.training import train
+from src.training.training import train, show_batch_loss_bar
 from src.utils.logger import get_logger
 
 logger = get_logger('training')
 
 
-def do_training(cuda, db, a):
-    vocab, corpus, train_ds = load_word2vec_data(
-        db, a.ds.vocab, a.ds.base_corpus, a.m.window, a.m.ss)
-    train_loader = DataLoader(train_ds, batch_size=a.rt.n_batch)
+def do_training(cuda, args):
+    models = args.m.models
+    base_ds = models['base_ds']
+    train_loader = DataLoader(base_ds, args.rt.n_batch, collate_fn=_collect_fn)
+    train_model = models['model']
 
-    w2v: Word2Vec = load_word2vec(db, a.m, vocab.size)
-
-    sampler = NegSample(vocab.size, a.m.n_negs, vocab.word_freq_ratio())
-    train_model = CBow(w2v, sampler)
-    train_optim = Adam(train_model.parameters(), lr=a.rt.init_lr)
-
+    train_optim = Adam(train_model.parameters(), lr=args.rt.init_lr)
     trainer = create_unsupervised_trainer(
-        train_model, train_optim, device=cuda, prepare_batch=_prepare_batch)
+        train_model, train_optim, device=cuda)
+    base_ds.attach(trainer)  # re-sub-sample the dataset for each epoch
 
-    train_ds.attach(trainer)  # re-sub-sample the dataset for each epoch
-
-    RunningAverage(output_transform=lambda x: x).attach(trainer, 'batch_loss')
-    pbar = ProgressBar()
-    pbar.attach(trainer, ['batch_loss'])
-
-    trainer.run(train_loader, max_epochs=a.rt.epochs)
-
-    dump_model(db, getattr(a, '_id'), {
-        'word2vec': w2v.state_dict(),
-        'vocab': vocab
-    })
+    show_batch_loss_bar(trainer, ProgressBar())
+    trainer.run(train_loader, max_epochs=args.rt.epochs)
 
 
-def _prepare_batch(batch, device=None, non_blocking=False):
-    _, word, context = batch
-    word = convert_tensor(word, device=device, non_blocking=non_blocking)
-    context = convert_tensor(context, device=device, non_blocking=non_blocking)
-    return (word, context), None  # None is the non-sense label
+def _collect_fn(batch):
+    ctr = [w for doc in batch for _, w, _ in doc]
+    ctx = [c for doc in batch for _, _, c in doc]
+    return (torch.stack(ctr), torch.stack(ctx)), None
 
 
 if __name__ == "__main__":

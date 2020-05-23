@@ -1,0 +1,50 @@
+{
+  "models": {
+    "vocab": "AsmVocab",
+    "base_ds": "Word2VecDataset",
+    "model": "CBow"
+  },
+  "models_to_save": [
+  ],
+  "vocab": {
+    "data": "&ds.vocab",
+    "recipe": {
+      "@": "VocabRecipe",
+      "min_word_freq": 0
+    }
+  },
+  "base_corpus": {
+    "data": "&ds.vocab",
+    "recipe": {
+      "@": "CorpusRecipe",
+      "min_fun_len": 5
+    },
+    "vocab": "&vocab"
+  },
+  "base_ds": {
+    "vocab": "&vocab",
+    "corpus": "&base_corpus",
+    "window": 5,
+    "ss": 1e-3
+  },
+  "w2v": {
+    "vocab": "&vocab",
+    "cfg": {
+      "@": "Word2VecRecipe",
+      "n_emb": 200,
+      "no_hdn": false,
+      "padding_idx": 0
+    }
+  },
+  "model": {
+    "w2v": "&w2v",
+    "sampler": {
+      "vocab": "&vocab",
+      "args": {
+        "@": "NegSampleArgs",
+        "n_negs": 20,
+        "user_wr": true
+      }
+    }
+  }
+}

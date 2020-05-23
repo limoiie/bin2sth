@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 import torch
@@ -72,9 +73,56 @@ class Word2Vec(torch.nn.Module):
         return data.to(self.idx2vec.weight.device)
 
 
-class CBow(torch.nn.Module):
+@auto_json
+@dataclass
+class NegSampleArgs:
+    n_negs: int = 0
+    use_wr: bool = False
 
-    def __init__(self, w2v, sampler):
+
+@ModelBuilder.register_cls
+class NegSample(torch.nn.Module):
+    vocab: AsmVocab
+
+    def __init__(self, vocab=None, args=None):
+        super().__init__()
+        self.args: Optional[NegSampleArgs] = args
+        self.vocab_size = 0
+        self.__neg_sample_dist = None
+
+        if vocab:
+            self.vocab_size = vocab.size
+            if args.use_wr:
+                t = torch.tensor(vocab.word_freq_ratio()).pow(0.75)
+                self.__neg_sample_dist = t / t.sum()
+
+    def neg_sample(self, batch_size):
+        # note: I did avoid the positive word during negatively sampling
+        # words because, in my opinion, the only downside of no avoiding
+        # is the loss cancelling which may slow down the training process
+        # slightly but has very little possibility to take place
+        if self.__neg_sample_dist is not None:
+            return self.__neg_sample_in_dist(batch_size, self.args.n_negs)
+        return self.__neg_sample_in_uniform(batch_size, self.args.n_negs)
+
+    def __neg_sample_in_dist(self, batch_size, n_negs):
+        """Negative sampling in a given distribution"""
+        return torch.multinomial(
+            self.__neg_sample_dist, batch_size * n_negs,
+            replacement=True).view(batch_size, -1)
+
+    def __neg_sample_in_uniform(self, batch_size, n_negs):
+        """Uniformly negative sampling"""
+        return torch.zeros(batch_size, n_negs) \
+            .uniform_(1, self.vocab_size).long()
+
+
+@ModelBuilder.register_cls
+class CBow(torch.nn.Module):
+    w2v: Word2Vec
+    sampler: NegSample
+
+    def __init__(self, w2v=None, sampler=None):
         super().__init__()
         self.w2v = w2v
         self.sampler = sampler
@@ -86,7 +134,7 @@ class CBow(torch.nn.Module):
         batch_size = cur.size()[0]
 
         # neg: batch_size x n_neg  :hdn
-        neg = self.sampler.neg_sample(batch_size, self.sampler.n_negs)
+        neg = self.sampler.neg_sample(batch_size)
         # -> batch_size x n_neg
 
         cur_vec = self.w2v.forward_hdn(cur).unsqueeze(1)
@@ -129,36 +177,3 @@ class SkipGram(torch.nn.Module):
         sim_mat = torch.bmm(sam_vec, cur_vec).squeeze(2)
         # -> batch_size x (n_ctx * (n_neg + 1))
         return -sim_mat.sigmoid().log().sum(dim=1).mean()
-
-
-class NegSample(torch.nn.Module):
-
-    def __init__(self, vocab_size, n_negs, wr=None):
-        super().__init__()
-        self.vocab_size = vocab_size
-        self.n_negs = n_negs
-        self.__neg_sample_dist = None
-
-        if wr is not None:
-            t = torch.tensor(wr).pow(0.75)
-            self.__neg_sample_dist = t / t.sum()
-
-    def neg_sample(self, batch_size, n_negs):
-        # note: I did avoid the positive word during negatively sampling
-        # words because, in my opinion, the only downside of no avoiding
-        # is the loss cancelling which may slow down the training process
-        # slightly but has very little possibility to take place
-        if self.__neg_sample_dist is not None:
-            return self.__neg_sample_in_dist(batch_size, n_negs)
-        return self.__neg_sample_in_uniform(batch_size, n_negs)
-
-    def __neg_sample_in_dist(self, batch_size, n_negs):
-        """Negative sampling in a given distribution"""
-        return torch.multinomial(
-            self.__neg_sample_dist, batch_size * n_negs,
-            replacement=True).view(batch_size, -1)
-
-    def __neg_sample_in_uniform(self, batch_size, n_negs):
-        """Uniformly negative sampling"""
-        return torch.zeros(batch_size, n_negs) \
-            .uniform_(1, self.vocab_size).long()

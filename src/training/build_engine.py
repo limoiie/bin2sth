@@ -6,8 +6,10 @@ from ignite.utils import convert_tensor
 
 def _prepare_batch(batch, device=None, non_blocking=False):
     x, l = batch
-    return convert_tensor(x, device=device, non_blocking=non_blocking), \
-        convert_tensor(l, device=device, non_blocking=non_blocking)
+    x = convert_tensor(x, device=device, non_blocking=non_blocking)
+    if l is not None:
+        l = convert_tensor(l, device=device, non_blocking=non_blocking)
+    return x, l
 
 
 def create_unsupervised_trainer(

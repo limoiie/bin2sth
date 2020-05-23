@@ -7,7 +7,6 @@ from src.preprocesses.corpus import Corpus
 from src.preprocesses.dataset.dataset import ReloadableDataset
 from src.preprocesses.preprocess import unk_idx_list
 from src.preprocesses.vocab import AsmVocab
-from src.utils.collection_op import is_collection_of
 
 
 class PVDMDataset(ReloadableDataset):
@@ -32,10 +31,6 @@ class PVDMDatasetBuilder(ModelBuilder):
         sync_corpus(self.corpus, self.base_corpus)
 
         self.data = []
-        # encode in one-hot if not
-        if not is_collection_of(self.corpus.idx2ins, [int]):
-            self.corpus.idx2ins = self.vocab.onehot_encode(self.corpus.idx2ins)
-
         # convert each func into a sequence of training data
         for func_id, stmts in enumerate(self.corpus.idx2ins):
             per_doc = []
@@ -50,7 +45,7 @@ class PVDMDatasetBuilder(ModelBuilder):
 
         maker = SubSampleDataMaker(
             self.data, self.vocab.sub_sample_ratio(self.ss))
-        return ReloadableDataset(maker)
+        return PVDMDataset(maker)
 
 
 class SubSampleDataMaker:

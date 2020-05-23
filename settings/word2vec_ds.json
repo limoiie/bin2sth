@@ -1,0 +1,43 @@
+{
+  "@": "DatasetArgs",
+  "vocab": {
+    "@": "BinArgs",
+    "progs": [
+      "lua"
+    ],
+    "prog_vers": [
+      [
+        "5.2.3"
+      ]
+    ],
+    "ccs": [
+      "gcc"
+    ],
+    "cc_vers": [
+      [
+        "7"
+      ]
+    ],
+    "archs": [
+      {
+        "@": "Arch",
+        "type": "metapc",
+        "bits": "b32",
+        "endian": "le"
+      }
+    ],
+    "opts": [
+      "O0",
+      "O3"
+    ],
+    "obfs": [
+      "none"
+    ]
+  },
+  "base_corpus": {
+    "!": "&vocab"
+  },
+  "find_corpus": {
+    "!": "&vocab"
+  }
+}
