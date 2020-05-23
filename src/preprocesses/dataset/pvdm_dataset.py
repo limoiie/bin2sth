@@ -2,9 +2,9 @@ import random
 
 import torch
 
-from src.preprocesses.builder import ModelBuilder
+from src.models.builder import ModelBuilder
 from src.preprocesses.corpus import Corpus
-from src.dataset.dataset import ReloadableDataset
+from src.preprocesses.dataset.dataset import ReloadableDataset
 from src.preprocesses.preprocess import unk_idx_list
 from src.preprocesses.vocab import AsmVocab
 from src.utils.collection_op import is_collection_of
@@ -15,7 +15,7 @@ class PVDMDataset(ReloadableDataset):
 
 
 @ModelBuilder.register(PVDMDataset)
-class PVDMDatasetBuilder:
+class PVDMDatasetBuilder(ModelBuilder):
     vocab: AsmVocab
     corpus: Corpus
     base_corpus: Corpus

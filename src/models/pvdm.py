@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -6,46 +7,19 @@ from torch.nn import Embedding
 
 from src.models.model import UnSupervisedModule
 from src.models.modules.word2vec import Word2Vec
-from src.preprocesses.builder import ModelBuilder, ModelKeeper, WholeModelKeeper
+from src.models.builder import ModelBuilder
 from src.preprocesses.corpus import Corpus
 from src.preprocesses.vocab import AsmVocab
 from src.utils.auto_json import auto_json
 from src.utils.logger import get_logger
 
 
-# noinspection PyArgumentList
-class FuncEmbedding(torch.nn.Module):
-    def __init__(self, corpus_size, embed_size):
-        super(FuncEmbedding, self).__init__()
-
-        self.corpus_size = corpus_size
-        self.embed_size = embed_size
-
-        self.idx2vec = self.__create_embedding(
-            self.__create_param())
-
-    def forward(self, idx):
-        return self.idx2vec(self.__cuda_wrap(idx))
-
-    def __create_embedding(self, weight):
-        return torch.nn.Embedding(self.corpus_size, self.embed_size,
-                                  _weight=weight)
-
-    def __create_param(self):
-        t = torch.FloatTensor(self.corpus_size, self.embed_size)
-        t.uniform_(-0.5 / self.embed_size, 0.5 / self.embed_size)
-        return t
-
-    def __cuda_wrap(self, data):
-        return data.to(self.idx2vec.weight.device)
-
-
 @auto_json
+@dataclass
 class CBowPVDMArgs:
-    def __init__(self, n_emb=0, n_negs=0, use_wr=False):
-        self.n_emb = n_emb
-        self.n_negs = n_negs
-        self.use_wr = use_wr
+    n_emb: int = 0
+    n_negs: int = 0
+    use_wr: bool = False
 
 
 @ModelBuilder.register_cls
@@ -129,39 +103,13 @@ class CBowPVDM(UnSupervisedModule):
             .uniform_(1, self.vocab_size).long()
 
 
-@ModelKeeper.register(CBowPVDM)
-class CBowPVDMKeeper(ModelKeeper):
-    def from_state(self, state):
-        model = CBowPVDM()
-        keeper = ModelKeeper.instance(Word2Vec)
-        model.args = state['args']
-        model.vocab_size = state['vocab_size']
-        model.corpus_size = state['corpus_size']
-        model.neg_samp_dist = state['neg_samp_dist']
-        model.init_param()
-        model.f2v.load_state_dict(state['f2v'])
-        model.w2v = keeper.from_state(state['w2v'])
-        return model
-
-    def state(self, model: CBowPVDM):
-        keeper = ModelKeeper.instance(Word2Vec)
-        return {
-            'args': model.args,
-            'vocab_size': model.vocab_size,
-            'corpus_size': model.corpus_size,
-            'f2v': model.f2v.state_dict(),
-            'neg_samp_dist': model.neg_samp_dist,
-            'w2v': keeper.state(model.w2v)
-        }
-
-
 def doc_eval_transform(output):
     """
     Transform the output of :class CBowPVDM to the form that
     could be accepted the :class ignite.metrics.TopKCategoricalAccuracy
     """
     doc_ids, (_, base_doc_embedding), (_, doc_embedding) = output
-    true_embedding_w = normalize(base_doc_embedding.idx2vec.weight)
+    true_embedding_w = normalize(base_doc_embedding.weight)
     pred_embedding_w = normalize(doc_embedding(doc_ids))
 
     y_pred = torch.matmul(pred_embedding_w, true_embedding_w.T)
@@ -178,7 +126,7 @@ def doc_eval_flatten_transform(output):
     into 1-dimension
     """
     doc_ids, (_, base_doc_embedding), (_, doc_embedding) = output
-    true_embedding_w = normalize(base_doc_embedding.idx2vec.weight)
+    true_embedding_w = normalize(base_doc_embedding.weight)
     pred_embedding_w = normalize(doc_embedding(doc_ids))
 
     y_pred = torch.matmul(true_embedding_w, pred_embedding_w.T)

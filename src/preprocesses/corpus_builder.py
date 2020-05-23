@@ -2,7 +2,7 @@ import rx
 
 import src.preprocesses.preprocess as pp
 from src.database.repository import Repository
-from src.preprocesses.builder import ModelBuilder, WholeModelKeeper, ModelKeeper
+from src.models.builder import ModelBuilder, WholeModelKeeper, ModelKeeper
 from src.preprocesses.corpus import CorpusMaker, Corpus
 from src.preprocesses.vocab import AsmVocab
 from src.training.args.train_args import BinArgs

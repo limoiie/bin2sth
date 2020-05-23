@@ -1,17 +1,19 @@
+from dataclasses import dataclass
+
 import rx
 
 import src.preprocesses.preprocess as pp
 from src.database.repository import Repository
-from src.preprocesses.builder import ModelBuilder, ModelKeeper, WholeModelKeeper
+from src.models.builder import ModelBuilder, ModelKeeper, WholeModelKeeper
 from src.preprocesses.vocab import AsmVocab
 from src.training.args.train_args import BinArgs
 from src.utils.auto_json import auto_json
 
 
 @auto_json
+@dataclass
 class VocabRecipe:
-    def __init__(self, min_word_freq=0):
-        self.min_word_freq = min_word_freq
+    min_word_freq: int = 0
 
     def make(self):
         return [

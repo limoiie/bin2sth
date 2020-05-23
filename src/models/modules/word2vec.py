@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from torch.nn import Embedding
 
-from src.preprocesses.builder import ModelBuilder, ModelKeeper
+from src.models.builder import ModelBuilder
 from src.preprocesses.vocab import AsmVocab
 from src.utils.auto_json import auto_json
 
@@ -24,7 +24,7 @@ class Word2Vec(torch.nn.Module):
         super(Word2Vec, self).__init__()
         self.idx2vec: Optional[Embedding] = None
         self.idx2hdn: Optional[Embedding] = None
-        self.cfg = cfg
+        self.cfg: Word2VecRecipe = cfg
 
         if vocab is None:
             self.vocab_size = 0
@@ -70,28 +70,6 @@ class Word2Vec(torch.nn.Module):
 
     def __cuda_wrap(self, data):
         return data.to(self.idx2vec.weight.device)
-
-
-@ModelKeeper.register(Word2Vec)
-class Word2VecKeeper(ModelKeeper):
-    def from_state(self, state):
-        model = Word2Vec()
-        model.cfg = state['cfg']
-        model.vocab_size = state['vocab_size']
-        model.init_param()
-        model.idx2vec.load_state_dict(state['idx2vec'])
-        model.idx2hdn.load_state_dict(state['idx2hdn'])
-        if model.cfg.no_hdn:
-            model.idx2hdn = model.idx2vec
-        return model
-
-    def state(self, model: Word2Vec):
-        return {
-            'vocab_size': model.vocab_size,
-            'cfg': model.cfg,
-            'idx2vec': model.idx2vec.state_dict(),
-            'idx2hdn': model.idx2hdn.state_dict()
-        }
 
 
 class CBow(torch.nn.Module):

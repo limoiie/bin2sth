@@ -1,7 +1,8 @@
 import torch
 
-from src.dataset.dataset import ReloadableDataset
-from src.dataset.pvdm_dataset import make_one_doc, SubSampleDataMaker
+from src.preprocesses.dataset.dataset import ReloadableDataset
+from src.preprocesses.dataset.pvdm_dataset import make_one_doc, \
+    SubSampleDataMaker
 from src.preprocesses.vocab import AsmVocab
 
 

@@ -16,11 +16,10 @@ which is the official implement of zuo2019neural.
 import fire
 import torch as t
 
-from src.database.database import load_genn_ufe_data, load_model, dump_model, \
-    load_vocab, load_cfg_corpus
+from src.database.database import load_model, dump_model, \
+    load_vocab
 from src.models.modules.word2vec import Word2Vec
 from src.preprocesses.corpus_builder import CorpusBuilder, CorpusRecipe
-from src.training.args.genn_ufe_args import GENNArgs
 from src.training.training import train
 from src.utils.logger import get_logger
 
