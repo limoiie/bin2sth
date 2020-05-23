@@ -29,7 +29,7 @@ from torch.nn.parameter import Parameter
 
 from src.models.builder import ModelBuilder
 from src.models.model import layer_trainable
-from src.models.modules.word2vec import Word2Vec, Word2VecRecipe
+from src.models.modules.word2vec import Word2Vec
 from src.preprocesses.vocab import AsmVocab
 from src.training.args.safe_args import SAFEArgs
 
@@ -68,12 +68,10 @@ class SAFE(nn.Module):
             bidirectional=True,
         )
 
-        self.WS1 = Parameter(
-            torch.empty(self.conf.atten_depth, 2 * self.conf.n_rnn_state)
-        )
-        self.WS2 = Parameter(
-            torch.empty(self.conf.atten_hops, self.conf.atten_depth)
-        )
+        init_w1 = torch.rand(self.conf.atten_depth, 2 * self.conf.n_rnn_state)
+        init_w2 = torch.rand(self.conf.atten_hops, self.conf.atten_depth)
+        self.WS1 = Parameter(init_w1 / init_w1.shape[0] / init_w1.shape[1])
+        self.WS2 = Parameter(init_w2 / init_w2.shape[0] / init_w2.shape[1])
 
         self.dense_1 = torch.nn.Linear(
             2 * self.conf.atten_hops * self.conf.n_rnn_state,
